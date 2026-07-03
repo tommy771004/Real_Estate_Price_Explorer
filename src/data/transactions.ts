@@ -25,11 +25,50 @@ export type SearchPayload = {
     endY: string;
     endM: string;
   };
+  unitPrice: RangeFilter & { unit: "1" | "2" };
+  area: RangeFilter & { unit: "1" | "2" };
+  age: RangeFilter;
+  keyword: string;
 };
 
 export type TransactionSummary = {
   count: number;
   metrics: Array<{ label: string; value: string; note: string }>;
+};
+
+export type RangeFilter = {
+  min: string;
+  max: string;
+};
+
+export type PeriodFilter = {
+  startY: string;
+  startM: string;
+  endY: string;
+  endM: string;
+};
+
+export type ClientFilters = {
+  keyword: string;
+  propertyTypes: string[];
+  period: PeriodFilter;
+  unitPrice: RangeFilter & { unit: "1" | "2" };
+  area: RangeFilter & { unit: "1" | "2" };
+  age: RangeFilter;
+};
+
+export const DEFAULT_FILTERS: ClientFilters = {
+  keyword: "",
+  propertyTypes: [],
+  period: {
+    startY: String(new Date().getFullYear() - 1911 - 2),
+    startM: "1",
+    endY: String(new Date().getFullYear() - 1911),
+    endM: "12",
+  },
+  unitPrice: { min: "", max: "", unit: "1" },
+  area: { min: "", max: "", unit: "2" },
+  age: { min: "", max: "" },
 };
 
 export const ASSET_DEFINITIONS: Record<AssetMode, AssetDefinition> = {
@@ -113,6 +152,32 @@ const formatPing = (squareMeters: number) =>
     maximumFractionDigits: 1,
   })} 坪`;
 
+const periodValue = (year: string, month: string) =>
+  (Number.parseInt(year || "0", 10) * 12) + Number.parseInt(month || "0", 10);
+
+const transactionPeriodValue = (date: string) => {
+  const raw = String(date || "");
+  if (raw.length < 5) return 0;
+  const year = raw.length >= 7 ? raw.slice(0, raw.length - 4) : raw.slice(0, 3);
+  const month = raw.length >= 7 ? raw.slice(raw.length - 4, raw.length - 2) : raw.slice(3, 5);
+  return periodValue(year, month);
+};
+
+const completionAge = (completionDate: string) => {
+  const year = Number.parseInt(String(completionDate || "").slice(0, 3), 10);
+  if (!Number.isFinite(year) || year <= 0) return null;
+  return Math.max(0, new Date().getFullYear() - 1911 - year);
+};
+
+const inRange = (value: number, minRaw: string, maxRaw: string) => {
+  if (!Number.isFinite(value)) return false;
+  const min = Number.parseFloat(minRaw);
+  const max = Number.parseFloat(maxRaw);
+  if (Number.isFinite(min) && value < min) return false;
+  if (Number.isFinite(max) && value > max) return false;
+  return true;
+};
+
 export const mapOfficialRows = (
   rows: unknown[][],
   transactionName: "買賣" | "預售屋" | "租賃",
@@ -173,25 +238,104 @@ export const filterTransactionsByAssetMode = (
   return records;
 };
 
+export const defaultPropertyTypesForMode = (mode: AssetMode) => {
+  if (mode === "land") return ["土地"];
+  if (mode === "building") return ["房地", "房地(車)", "建物"];
+  return [];
+};
+
+const matchesPropertyType = (record: Transaction, propertyType: string) => {
+  if (propertyType === "房地") {
+    return record.transactionType === "房地(土地+建物)" || record.transactionType === "房地";
+  }
+  if (propertyType === "房地(車)") {
+    return record.transactionType === "房地(土地+建物)+車位" || record.transactionType.includes("車位");
+  }
+  return record.transactionType === propertyType;
+};
+
+export const applyClientFilters = (
+  records: Transaction[],
+  mode: AssetMode,
+  filters: ClientFilters,
+) => {
+  const assetRecords = filterTransactionsByAssetMode(records, mode);
+  const propertyTypes = filters.propertyTypes.length > 0
+    ? filters.propertyTypes
+    : defaultPropertyTypesForMode(mode);
+  const start = periodValue(filters.period.startY, filters.period.startM);
+  const end = periodValue(filters.period.endY, filters.period.endM);
+  const keyword = filters.keyword.trim();
+
+  return assetRecords.filter((record) => {
+    if (keyword) {
+      const searchText = [
+        record.address,
+        record.district,
+        record.buildingType,
+        record.buildCase,
+        record.remarks,
+      ].join(" ");
+      if (!searchText.includes(keyword)) return false;
+    }
+
+    if (propertyTypes.length > 0 && !propertyTypes.some((type) => matchesPropertyType(record, type))) {
+      return false;
+    }
+
+    const recordPeriod = transactionPeriodValue(record.date);
+    if (recordPeriod > 0 && (recordPeriod < start || recordPeriod > end)) return false;
+
+    if (filters.unitPrice.min || filters.unitPrice.max) {
+      const rawUnitPrice = toNumber(record.unitPrice);
+      const comparable = filters.unitPrice.unit === "1"
+        ? (rawUnitPrice * 3.30578) / 10_000
+        : rawUnitPrice;
+      if (!inRange(comparable, filters.unitPrice.min, filters.unitPrice.max)) return false;
+    }
+
+    if (filters.area.min || filters.area.max) {
+      const squareMeters = toNumber(mode === "land" ? record.area : record.buildingArea || record.area);
+      const comparable = filters.area.unit === "2" ? squareMeters * 0.3025 : squareMeters;
+      if (!inRange(comparable, filters.area.min, filters.area.max)) return false;
+    }
+
+    if (filters.age.min || filters.age.max) {
+      const age = completionAge(record.completionDate);
+      if (age === null || !inRange(age, filters.age.min, filters.age.max)) return false;
+    }
+
+    return true;
+  });
+};
+
 export const buildSearchPayload = (
   cityName: string,
   district: string,
   mode: AssetMode,
+  filters: ClientFilters = DEFAULT_FILTERS,
 ): SearchPayload => {
   const definition = ASSET_DEFINITIONS[mode];
   const currentRocYear = new Date().getFullYear() - 1911;
+  const propertyTypes = filters.propertyTypes.length > 0
+    ? filters.propertyTypes
+    : defaultPropertyTypesForMode(mode);
 
   return {
     cityCode: CITIES.find((city) => city.name === cityName)?.code ?? "A",
     district,
-    propertyTypes: mode === "land" ? ["土地"] : mode === "building" ? ["房地", "房地(車)", "建物"] : [],
+    propertyTypes,
     transactionType: definition.transactionCode,
     period: {
-      startY: String(currentRocYear - 2),
-      startM: "1",
-      endY: String(currentRocYear),
-      endM: "12",
+      startY: filters.period.startY || String(currentRocYear - 2),
+      startM: filters.period.startM || "1",
+      endY: filters.period.endY || String(currentRocYear),
+      endM: filters.period.endM || "12",
     },
+    unitPrice: filters.unitPrice,
+    area: filters.area,
+    age: filters.age,
+    keyword: filters.keyword.trim(),
   };
 };
 

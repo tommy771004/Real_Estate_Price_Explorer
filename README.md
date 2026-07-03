@@ -1,6 +1,8 @@
 # Real Estate Liquid Glass
 
-An independent React/Vite prototype for browsing Taiwan building, land, presale, and rental transaction examples with an iOS-inspired Liquid Glass interface.
+An independent React/Vite app for browsing Taiwan building, land, presale, and rental transactions with an iOS-inspired Liquid Glass interface.
+
+Transaction rows are downloaded from the Ministry of Interior open-data service. The app includes no bundled sample, mock, or fallback transaction records.
 
 ## Local development
 
@@ -28,6 +30,8 @@ prototypes/real-estate-liquid-glass
 ```
 
 The included `vercel.json` builds the Vite app and rewrites SPA routes to `index.html`.
+
+The serverless endpoint is `api/proxy-search.ts`; local Vite development exposes the same endpoint through a development middleware.
 
 ## Isolation
 

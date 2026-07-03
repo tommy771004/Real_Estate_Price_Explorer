@@ -4,12 +4,18 @@ type SiteChromeProps = {
   reduceTransparency: boolean;
   onTransparencyToggle: () => void;
   onFiltersOpen: () => void;
+  onSettingsOpen: () => void;
+  onFavoritesOpen: () => void;
+  favoriteCount: number;
 };
 
 export function SiteChrome({
   reduceTransparency,
   onTransparencyToggle,
   onFiltersOpen,
+  onSettingsOpen,
+  onFavoritesOpen,
+  favoriteCount,
 }: SiteChromeProps) {
   return (
     <header className="site-chrome glass-surface">
@@ -36,14 +42,20 @@ export function SiteChrome({
             ? <EyeOff aria-hidden="true" size={18} />
             : <Eye aria-hidden="true" size={18} />}
         </button>
-        <button className="icon-button desktop-only" type="button" aria-label="設定">
+        <button className="icon-button desktop-only" type="button" aria-label="設定" onClick={onSettingsOpen}>
           <Settings2 aria-hidden="true" size={18} />
         </button>
         <button className="icon-button mobile-only" type="button" aria-label="開啟篩選" onClick={onFiltersOpen}>
           <Menu aria-hidden="true" size={18} />
         </button>
-        <button className="icon-button desktop-only" type="button" aria-label="收藏">
+        <button
+          className="icon-button desktop-only has-badge"
+          type="button"
+          aria-label={`收藏與儲存查詢，共 ${favoriteCount} 項`}
+          onClick={onFavoritesOpen}
+        >
           <Heart aria-hidden="true" size={18} />
+          {favoriteCount > 0 ? <span>{favoriteCount}</span> : null}
         </button>
       </div>
     </header>

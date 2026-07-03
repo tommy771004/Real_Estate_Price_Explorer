@@ -44,6 +44,28 @@ test("app exposes four asset modes and semantic interactive views", async () => 
   assert.doesNotMatch(app, /ASSET_EXPERIENCES/);
 });
 
+test("interactive chrome buttons are wired to real panels and persisted actions", async () => {
+  const [app, chrome, workspace, filter] = await Promise.all([
+    read("src/App.tsx"),
+    read("src/components/SiteChrome.tsx"),
+    read("src/components/ResultWorkspace.tsx"),
+    read("src/components/FilterPanel.tsx"),
+  ]);
+
+  assert.match(chrome, /onSettingsOpen/);
+  assert.match(chrome, /onFavoritesOpen/);
+  assert.match(app, /explorer_lg_saved_searches/);
+  assert.match(app, /explorer_lg_favorites/);
+  assert.match(app, /settings-panel/);
+  assert.match(app, /saved-panel/);
+  assert.match(workspace, /onSaveSearch/);
+  assert.match(workspace, /onAddToCompare/);
+  assert.match(filter, /keyword/);
+  assert.match(filter, /unitPrice/);
+  assert.match(filter, /area/);
+  assert.match(filter, /age/);
+});
+
 test("Liquid Glass CSS includes motion and accessibility fallbacks", async () => {
   const css = await read("src/styles.css");
 
@@ -55,6 +77,10 @@ test("Liquid Glass CSS includes motion and accessibility fallbacks", async () =>
   assert.match(css, /prefers-reduced-transparency:\s*reduce/);
   assert.match(css, /\.reduce-transparency/);
   assert.match(css, /@media\s*\(max-width:\s*760px\)/);
+  assert.match(css, /\.map-canvas\s*\{[^}]*z-index:\s*0/s);
+  assert.match(css, /\.leaflet-map\s*\{[^}]*z-index:\s*0/s);
+  assert.match(css, /max-height:\s*min\(40dvh,\s*240px\)/);
+  assert.match(css, /\.insight-panel:not\(\.is-open\)/);
 });
 
 test("serverless API downloads official Ministry of Interior data", async () => {

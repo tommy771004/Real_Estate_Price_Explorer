@@ -13,7 +13,7 @@ const officialDataDevApi = () => ({
       }
 
       let body = "";
-      request.on("data", (chunk: Buffer) => {
+      request.on("data", (chunk: { toString: () => string }) => {
         body += chunk.toString();
       });
       request.on("end", async () => {

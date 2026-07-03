@@ -3,7 +3,7 @@ import { useCallback, useEffect, useState } from "react";
 import {
   ASSET_DEFINITIONS,
   buildSearchPayload,
-  filterTransactionsByAssetMode,
+  type ClientFilters,
   mapOfficialRows,
   type AssetMode,
 } from "../data/transactions";
@@ -20,6 +20,7 @@ export function useTransactions(
   cityName: string,
   district: string,
   mode: AssetMode,
+  filters: ClientFilters,
 ) {
   const [data, setData] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
@@ -43,7 +44,7 @@ export function useTransactions(
           method: "POST",
           headers: { "Content-Type": "application/json" },
           signal: controller.signal,
-          body: JSON.stringify(buildSearchPayload(cityName, district, mode)),
+          body: JSON.stringify(buildSearchPayload(cityName, district, mode, filters)),
         });
         const result = await response.json() as SearchResponse;
 
@@ -52,7 +53,7 @@ export function useTransactions(
         }
 
         const mapped = mapOfficialRows(result.data ?? [], definition.transactionName);
-        setData(filterTransactionsByAssetMode(mapped, mode));
+        setData(mapped);
         setSource(result.source ?? null);
       } catch (loadError) {
         if (loadError instanceof DOMException && loadError.name === "AbortError") return;
@@ -66,7 +67,7 @@ export function useTransactions(
 
     void load();
     return () => controller.abort();
-  }, [cityName, district, mode, requestVersion]);
+  }, [cityName, district, filters, mode, requestVersion]);
 
   return {
     data,

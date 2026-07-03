@@ -2,6 +2,8 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
+  DEFAULT_FILTERS,
+  applyClientFilters,
   buildSearchPayload,
   filterTransactionsByAssetMode,
   mapOfficialRows,
@@ -111,3 +113,45 @@ test("summaries are derived from fetched records", () => {
   assert.equal(summary.metrics[1].value, "1,800 萬");
 });
 
+test("client filters preserve the original app keyword price area age and period behavior", () => {
+  const newerBuildingRow = [...buildingRow];
+  newerBuildingRow[2] = "青埔路二段2號";
+  newerBuildingRow[7] = "1150601";
+  newerBuildingRow[14] = "1100101";
+  newerBuildingRow[15] = "80";
+  newerBuildingRow[21] = "24000000";
+  newerBuildingRow[22] = "300000";
+  newerBuildingRow[27] = "newer-building-id";
+
+  const records = mapOfficialRows([buildingRow, newerBuildingRow, landRow], "買賣");
+  const filtered = applyClientFilters(records, "building", {
+    ...DEFAULT_FILTERS,
+    keyword: "青埔路二段",
+    propertyTypes: ["房地"],
+    period: { startY: "115", startM: "1", endY: "115", endM: "12" },
+    unitPrice: { min: "80", max: "120", unit: "1" },
+    area: { min: "20", max: "30", unit: "2" },
+    age: { min: "0", max: "10" },
+  });
+
+  assert.deepEqual(filtered.map(({ id }) => id), ["newer-building-id"]);
+});
+
+test("search payload forwards original app advanced query fields to the official API", () => {
+  const payload = buildSearchPayload("臺北市", "中山區", "building", {
+    ...DEFAULT_FILTERS,
+    keyword: "南京東路",
+    propertyTypes: ["房地", "建物"],
+    period: { startY: "113", startM: "3", endY: "115", endM: "6" },
+    unitPrice: { min: "60", max: "100", unit: "1" },
+    area: { min: "20", max: "40", unit: "2" },
+    age: { min: "5", max: "20" },
+  });
+
+  assert.equal(payload.keyword, "南京東路");
+  assert.deepEqual(payload.propertyTypes, ["房地", "建物"]);
+  assert.deepEqual(payload.period, { startY: "113", startM: "3", endY: "115", endM: "6" });
+  assert.deepEqual(payload.unitPrice, { min: "60", max: "100", unit: "1" });
+  assert.deepEqual(payload.area, { min: "20", max: "40", unit: "2" });
+  assert.deepEqual(payload.age, { min: "5", max: "20" });
+});
