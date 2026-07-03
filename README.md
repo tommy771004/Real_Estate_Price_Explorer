@@ -1,11 +1,34 @@
-<div align="center">
+# Real Estate Liquid Glass
 
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
+An independent React/Vite prototype for browsing Taiwan building, land, presale, and rental transaction examples with an iOS-inspired Liquid Glass interface.
 
-  <h1>Built with AI Studio</h2>
+## Local development
 
-  <p>The fastest path from prompt to production with Gemini.</p>
+```bash
+npm install
+npm run dev
+```
 
-  <a href="https://aistudio.google.com/apps">Start building</a>
+The default local URL is `http://localhost:4174`.
 
-</div>
+## Verification
+
+```bash
+npm test
+npm run typecheck
+npm run build
+```
+
+## Vercel
+
+Import this folder as the Vercel project root:
+
+```text
+prototypes/real-estate-liquid-glass
+```
+
+The included `vercel.json` builds the Vite app and rewrites SPA routes to `index.html`.
+
+## Isolation
+
+This prototype does not import or modify the existing application under the repository root. It has its own dependencies, source, tests, output directory, and Vercel configuration.
