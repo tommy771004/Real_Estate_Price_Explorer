@@ -66,6 +66,42 @@ test("interactive chrome buttons are wired to real panels and persisted actions"
   assert.match(filter, /age/);
 });
 
+test("parity features cover SEO, search intelligence, feedback, location, settings, and table analysis", async () => {
+  const [app, workspace, feedbackApi, auditApi, experience] = await Promise.all([
+    read("src/App.tsx"),
+    read("src/components/ResultWorkspace.tsx"),
+    read("api/feedback.ts"),
+    read("api/audit-log.ts"),
+    read("src/data/experience.ts"),
+  ]);
+
+  for (const token of [
+    "seo-content-zone",
+    "常見問題 FAQ",
+    "site-footer-map",
+    "recentSearches",
+    "popularDistricts",
+    "suggestions",
+    "feedback-panel",
+    "requestUserLocation",
+    "darkMode",
+    "fontSize",
+    "editableCopy",
+  ]) {
+    assert.match(app, new RegExp(token));
+  }
+
+  assert.match(workspace, /sortConfig/);
+  assert.match(workspace, /pageSize/);
+  assert.match(workspace, /aggregatePresaleProjects/);
+  assert.match(workspace, /buildCommunityTrend/);
+  assert.match(feedbackApi, /validateFeedbackPayload/);
+  assert.match(auditApi, /validateAuditPayload/);
+  assert.match(experience, /derivePopularDistricts/);
+  assert.match(experience, /sortTransactions/);
+  assert.match(experience, /paginateTransactions/);
+});
+
 test("Liquid Glass CSS includes motion and accessibility fallbacks", async () => {
   const css = await read("src/styles.css");
 

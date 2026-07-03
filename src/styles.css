@@ -67,6 +67,23 @@ a:focus-visible {
   background: #d7e5e0;
 }
 
+.app-shell.dark-mode {
+  color: #eaf3ef;
+  background: #14241f;
+  --ink: #eaf3ef;
+  --glass: rgba(24, 42, 36, 0.58);
+  --glass-strong: rgba(30, 52, 45, 0.76);
+  --glass-dark: rgba(9, 24, 19, 0.84);
+}
+
+.app-shell.font-small {
+  font-size: 14px;
+}
+
+.app-shell.font-large {
+  font-size: 17px;
+}
+
 .map-atmosphere {
   position: absolute;
   inset: 0;
@@ -1173,6 +1190,229 @@ a:focus-visible {
   font-weight: 820;
 }
 
+.search-intelligence {
+  position: fixed;
+  z-index: 34;
+  top: 338px;
+  left: 272px;
+  width: 260px;
+  padding: 13px;
+  border-radius: 24px;
+  display: grid;
+  gap: 10px;
+}
+
+.search-intelligence section {
+  display: grid;
+  gap: 5px;
+}
+
+.search-intelligence strong {
+  font-size: 11px;
+}
+
+.search-intelligence button,
+.search-intelligence span {
+  border: 0;
+  border-radius: 14px;
+  color: #4e665b;
+  background: rgba(255, 255, 255, 0.46);
+  font-size: 10px;
+  font-weight: 760;
+  text-align: left;
+}
+
+.search-intelligence button {
+  padding: 7px 9px;
+  cursor: pointer;
+}
+
+.search-intelligence span {
+  padding: 7px 9px;
+}
+
+.search-intelligence small {
+  float: right;
+  color: #7b8d84;
+}
+
+.setting-group {
+  padding: 12px 0;
+  border-top: 1px solid rgba(64, 92, 82, 0.12);
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.setting-group strong {
+  margin-right: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+}
+
+.setting-group button,
+.mini-action {
+  min-height: 30px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 15px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: #40584d;
+  background: rgba(255, 255, 255, 0.52);
+  font-size: 11px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.setting-group button.is-active {
+  color: #a94331;
+  background: rgba(255, 255, 255, 0.86);
+}
+
+.copy-field {
+  margin-top: 10px;
+  display: grid;
+  gap: 5px;
+}
+
+.copy-field span {
+  color: #6a7e74;
+  font-size: 10px;
+  font-weight: 820;
+}
+
+.copy-field input,
+.copy-field select,
+.copy-field textarea {
+  width: 100%;
+  border: 0;
+  border-radius: 16px;
+  outline: 0;
+  color: #40584d;
+  background: rgba(255, 255, 255, 0.54);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 720;
+}
+
+.copy-field input,
+.copy-field select {
+  height: 38px;
+  padding: 0 12px;
+}
+
+.copy-field textarea {
+  min-height: 104px;
+  padding: 10px 12px;
+  resize: vertical;
+}
+
+.button-link {
+  cursor: pointer;
+}
+
+.feedback-panel {
+  width: min(420px, 100%);
+  max-height: calc(100dvh - 110px);
+  padding: 18px;
+  border-radius: 28px;
+  overflow: auto;
+}
+
+.table-controls,
+.pagination-controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.table-controls {
+  margin-top: 9px;
+  overflow-x: auto;
+}
+
+.table-controls button,
+.table-controls select,
+.pagination-controls button {
+  min-height: 28px;
+  border: 0;
+  border-radius: 14px;
+  color: #4e665b;
+  background: rgba(255, 255, 255, 0.52);
+  font-size: 10px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.table-controls button,
+.pagination-controls button {
+  padding: 0 10px;
+}
+
+.table-controls select {
+  padding: 0 8px;
+}
+
+.pagination-controls {
+  margin-top: 8px;
+  justify-content: flex-end;
+  color: #6d8076;
+  font-size: 10px;
+  font-weight: 780;
+}
+
+.community-trend,
+.presale-aggregate {
+  margin-top: 9px;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 7px;
+}
+
+.presale-aggregate {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.community-trend span,
+.presale-aggregate span {
+  min-width: 0;
+  padding: 7px 9px;
+  border-radius: 15px;
+  display: grid;
+  gap: 2px;
+  background: rgba(255, 255, 255, 0.46);
+}
+
+.community-trend b,
+.presale-aggregate b {
+  overflow: hidden;
+  color: color-mix(in srgb, var(--asset-accent) 72%, #17312a);
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.community-trend small,
+.presale-aggregate small {
+  overflow: hidden;
+  color: #6d8076;
+  font-size: 8px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.seo-content-zone {
+  position: absolute;
+  left: -10000px;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+}
+
 .result-workspace {
   position: fixed;
   z-index: 36;
@@ -1744,6 +1984,10 @@ a:focus-visible {
     border-radius: 28px;
   }
 
+  .search-intelligence {
+    display: none;
+  }
+
   .sheet-handle {
     width: 38px;
     height: 4px;
@@ -1795,10 +2039,16 @@ a:focus-visible {
   }
 
   .settings-panel,
-  .saved-panel {
+  .saved-panel,
+  .feedback-panel {
     width: 100%;
     max-height: calc(100svh - 146px);
     border-radius: 28px;
+  }
+
+  .community-trend,
+  .presale-aggregate {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .toast {
