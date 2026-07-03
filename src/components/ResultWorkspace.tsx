@@ -100,7 +100,7 @@ export function ResultWorkspace({
           >
             <Bookmark aria-hidden="true" size={17} />
           </button>
-          <button className="icon-button" type="button" aria-label="加入比較" onClick={onAddToCompare} disabled={!selectedRecord && visibleRecords.length === 0}>
+          <button className="icon-button" type="button" aria-label="加入比較" onClick={onAddToCompare}>
             <Scale aria-hidden="true" size={17} />
           </button>
         </div>

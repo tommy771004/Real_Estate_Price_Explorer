@@ -213,7 +213,11 @@ export default function App() {
   };
 
   const addToCompare = (record: Transaction | null) => {
-    if (!record) return;
+    if (!record) {
+      setView("compare");
+      setStatusMessage("目前沒有可比較的成交紀錄");
+      return;
+    }
     setCompareRecords((current) =>
       [record, ...current.filter((item) => item.id !== record.id)].slice(0, 3),
     );

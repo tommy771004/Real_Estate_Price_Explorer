@@ -42,14 +42,14 @@ export function SiteChrome({
             ? <EyeOff aria-hidden="true" size={18} />
             : <Eye aria-hidden="true" size={18} />}
         </button>
-        <button className="icon-button desktop-only" type="button" aria-label="設定" onClick={onSettingsOpen}>
+        <button className="icon-button" type="button" aria-label="設定" onClick={onSettingsOpen}>
           <Settings2 aria-hidden="true" size={18} />
         </button>
         <button className="icon-button mobile-only" type="button" aria-label="開啟篩選" onClick={onFiltersOpen}>
           <Menu aria-hidden="true" size={18} />
         </button>
         <button
-          className="icon-button desktop-only has-badge"
+          className="icon-button has-badge"
           type="button"
           aria-label={`收藏與儲存查詢，共 ${favoriteCount} 項`}
           onClick={onFavoritesOpen}
