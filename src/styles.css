@@ -765,6 +765,25 @@ a:focus-visible {
   animation: pin-enter 520ms var(--spring-bouncy) both;
 }
 
+.marker-cluster {
+  background-clip: padding-box;
+  border-radius: 50%;
+  background-color: color-mix(in srgb, var(--asset-accent) 24%, transparent);
+}
+
+.marker-cluster div {
+  width: 30px;
+  height: 30px;
+  margin-left: 5px;
+  margin-top: 5px;
+  text-align: center;
+  border-radius: 50%;
+  font: 600 13px/30px var(--font-sans);
+  color: #fff;
+  background-color: var(--asset-accent);
+  box-shadow: 0 4px 12px rgba(22, 52, 42, 0.24);
+}
+
 .layer-control {
   position: absolute;
   z-index: 700;

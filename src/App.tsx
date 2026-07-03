@@ -33,7 +33,6 @@ import {
   type RecentSearch,
 } from "./data/experience";
 import {
-  ASSET_DEFINITIONS,
   DEFAULT_FILTERS,
   applyClientFilters,
   defaultPropertyTypesForMode,
@@ -41,6 +40,69 @@ import {
   type AssetMode,
   type ClientFilters,
 } from "./data/transactions";
+
+const ASSET_DEFINITIONS: Record<AssetMode, {
+  mode: AssetMode;
+  label: string;
+  queryLabel: string;
+  transactionName: "買賣" | "預售屋" | "租賃";
+  transactionCode: "A" | "B" | "C";
+  guidance: string[];
+  accent: string;
+}> = {
+  building: {
+    mode: "building",
+    label: "房地",
+    queryLabel: "房地成交",
+    transactionName: "買賣",
+    transactionCode: "A",
+    guidance: [
+      "先確認交易是否包含車位與車位拆價。",
+      "再對齊建物型態、屋齡、樓層與面積。",
+      "最後查看特殊交易與備註。",
+    ],
+    accent: "#ef6c52",
+  },
+  land: {
+    mode: "land",
+    label: "土地",
+    queryLabel: "土地成交",
+    transactionName: "買賣",
+    transactionCode: "A",
+    guidance: [
+      "先確認土地使用分區，不同分區不可直接混比。",
+      "再對齊土地面積、形狀與臨路條件。",
+      "最後查看持分、地上物與特殊交易備註。",
+    ],
+    accent: "#3e7662",
+  },
+  presale: {
+    mode: "presale",
+    label: "預售屋",
+    queryLabel: "預售屋成交",
+    transactionName: "預售屋",
+    transactionCode: "B",
+    guidance: [
+      "以簽約月份比較，不以完工或揭露日期混用。",
+      "確認車位價格、坪數與公設計算口徑。",
+      "同建案不同棟別、樓層與付款條件要分開看。",
+    ],
+    accent: "#6f76c8",
+  },
+  rental: {
+    mode: "rental",
+    label: "租賃",
+    queryLabel: "租賃成交",
+    transactionName: "租賃",
+    transactionCode: "C",
+    guidance: [
+      "確認租金是否包含管理費、車位與家具家電。",
+      "整層、分租套房與獨立套房不可直接混比。",
+      "租期、樓層與屋況都會影響實際租金。",
+    ],
+    accent: "#2f89a0",
+  },
+};
 import { useGeocoding } from "./hooks/useGeocoding";
 import { useTransactions } from "./hooks/useTransactions";
 import type { Transaction } from "./types/real-estate";
@@ -493,32 +555,7 @@ export default function App() {
           onSelectRecord={setSelectedRecord}
         />
 
-        <aside
-          id="guidance"
-          className={`insight-panel glass-surface-dark ${insightOpen ? "is-open" : ""}`}
-        >
-          <button
-            className="insight-toggle"
-            type="button"
-            aria-expanded={insightOpen}
-            onClick={() => setInsightOpen((value) => !value)}
-          >
-            <Info aria-hidden="true" size={17} />
-            <span>這批資料怎麼看</span>
-            <ChevronUp aria-hidden="true" className={!insightOpen ? "is-flipped" : ""} size={16} />
-          </button>
-          <ol>
-            {definition.guidance.map((item) => <li key={item}>{item}</li>)}
-          </ol>
-          <a
-            id="source"
-            href={source ?? "https://plvr.land.moi.gov.tw/"}
-            target="_blank"
-            rel="noreferrer"
-          >
-            查看內政部官方資料來源
-          </a>
-        </aside>
+
 
         <div id="results">
           <ResultWorkspace

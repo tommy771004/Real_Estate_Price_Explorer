@@ -6,8 +6,10 @@ import {
   Marker,
   Popup,
   TileLayer,
+  Tooltip,
   useMap,
 } from "react-leaflet";
+import MarkerClusterGroup from "react-leaflet-cluster";
 
 import { CITIES, CITY_DISTRICTS } from "../data/locations";
 import {
@@ -122,27 +124,34 @@ export function MapCanvas({
       >
         <TileLayer url={tile.url} attribution={tile.attribution} />
         <MapBounds records={geocodedRecords} />
-        {geocodedRecords.map((record) => {
-          const lat = toCoordinate(record.lat)!;
-          const lng = toCoordinate(record.lng)!;
-          return (
-            <Marker
-              key={record.id}
-              position={[lat, lng]}
-              icon={markerIcon}
-              eventHandlers={{ click: () => onSelectRecord(record) }}
-            >
-              <Popup>
-                <button className="map-popup" type="button" onClick={() => onSelectRecord(record)}>
+        <MarkerClusterGroup chunkedLoading maxClusterRadius={60}>
+          {geocodedRecords.map((record) => {
+            const lat = toCoordinate(record.lat)!;
+            const lng = toCoordinate(record.lng)!;
+            return (
+              <Marker
+                key={record.id}
+                position={[lat, lng]}
+                icon={markerIcon}
+                eventHandlers={{ click: () => onSelectRecord(record) }}
+              >
+                <Tooltip direction="top" offset={[0, -14]} opacity={1}>
                   <strong>{record.address || record.district}</strong>
-                  <span>{record.transactionType} · {record.date}</span>
-                  <b>{formatTransactionPrice(record.totalPrice, mode)}</b>
-                  <small>{formatUnitPrice(record.unitPrice, mode)}</small>
-                </button>
-              </Popup>
-            </Marker>
-          );
-        })}
+                  <br />
+                  <span>{formatTransactionPrice(record.totalPrice, mode)}</span>
+                </Tooltip>
+                <Popup>
+                  <button className="map-popup" type="button" onClick={() => onSelectRecord(record)}>
+                    <strong>{record.address || record.district}</strong>
+                    <span>{record.transactionType} · {record.date}</span>
+                    <b>{formatTransactionPrice(record.totalPrice, mode)}</b>
+                    <small>{formatUnitPrice(record.unitPrice, mode)}</small>
+                  </button>
+                </Popup>
+              </Marker>
+            );
+          })}
+        </MarkerClusterGroup>
       </MapContainer>
 
       <div className="layer-control glass-surface" aria-label="地圖圖層">

@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 
 import {
-  ASSET_DEFINITIONS,
   buildSearchPayload,
   type ClientFilters,
   mapOfficialRows,
@@ -34,7 +33,11 @@ export function useTransactions(
 
   useEffect(() => {
     const controller = new AbortController();
-    const definition = ASSET_DEFINITIONS[mode];
+    const getTransactionName = (m: AssetMode): "買賣" | "預售屋" | "租賃" => {
+      if (m === "presale") return "預售屋";
+      if (m === "rental") return "租賃";
+      return "買賣";
+    };
 
     const load = async () => {
       setLoading(true);
@@ -52,7 +55,7 @@ export function useTransactions(
           throw new Error(result.error || `官方資料服務錯誤 (${response.status})`);
         }
 
-        const mapped = mapOfficialRows(result.data ?? [], definition.transactionName);
+        const mapped = mapOfficialRows(result.data ?? [], getTransactionName(mode));
         setData(mapped);
         setSource(result.source ?? null);
       } catch (loadError) {

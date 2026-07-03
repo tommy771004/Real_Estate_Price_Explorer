@@ -1,7 +1,6 @@
 import { Building2, House, KeyRound, LandPlot } from "lucide-react";
 
 import {
-  ASSET_DEFINITIONS,
   ASSET_MODES,
   type AssetMode,
 } from "../data/transactions";
@@ -12,6 +11,13 @@ const ICONS = {
   presale: Building2,
   rental: KeyRound,
 } satisfies Record<AssetMode, typeof House>;
+
+const LABELS: Record<AssetMode, string> = {
+  building: "房地",
+  land: "土地",
+  presale: "預售屋",
+  rental: "租賃",
+};
 
 type AssetDockProps = {
   activeMode: AssetMode;
@@ -33,7 +39,7 @@ export function AssetDock({ activeMode, onChange }: AssetDockProps) {
             onClick={() => onChange(mode)}
           >
             <Icon aria-hidden="true" size={16} strokeWidth={2.2} />
-            <span>{ASSET_DEFINITIONS[mode].label}</span>
+            <span>{LABELS[mode]}</span>
           </button>
         );
       })}

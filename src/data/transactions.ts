@@ -71,60 +71,6 @@ export const DEFAULT_FILTERS: ClientFilters = {
   age: { min: "", max: "" },
 };
 
-export const ASSET_DEFINITIONS: Record<AssetMode, AssetDefinition> = {
-  building: {
-    mode: "building",
-    label: "房地",
-    queryLabel: "房地成交",
-    transactionName: "買賣",
-    transactionCode: "A",
-    guidance: [
-      "先確認交易是否包含車位與車位拆價。",
-      "再對齊建物型態、屋齡、樓層與面積。",
-      "最後查看特殊交易與備註。",
-    ],
-    accent: "#ef6c52",
-  },
-  land: {
-    mode: "land",
-    label: "土地",
-    queryLabel: "土地成交",
-    transactionName: "買賣",
-    transactionCode: "A",
-    guidance: [
-      "先確認土地使用分區，不同分區不可直接混比。",
-      "再對齊土地面積、形狀與臨路條件。",
-      "最後查看持分、地上物與特殊交易備註。",
-    ],
-    accent: "#3e7662",
-  },
-  presale: {
-    mode: "presale",
-    label: "預售屋",
-    queryLabel: "預售屋成交",
-    transactionName: "預售屋",
-    transactionCode: "B",
-    guidance: [
-      "以簽約月份比較，不以完工或揭露日期混用。",
-      "確認車位價格、坪數與公設計算口徑。",
-      "同建案不同棟別、樓層與付款條件要分開看。",
-    ],
-    accent: "#6f76c8",
-  },
-  rental: {
-    mode: "rental",
-    label: "租賃",
-    queryLabel: "租賃成交",
-    transactionName: "租賃",
-    transactionCode: "C",
-    guidance: [
-      "確認租金是否包含管理費、車位與家具家電。",
-      "整層、分租套房與獨立套房不可直接混比。",
-      "租期、樓層與屋況都會影響實際租金。",
-    ],
-    accent: "#2f89a0",
-  },
-};
 
 const toNumber = (value: string | number | undefined) => {
   const parsed = Number(String(value ?? "").replaceAll(",", ""));
@@ -315,7 +261,14 @@ export const buildSearchPayload = (
   mode: AssetMode,
   filters: ClientFilters = DEFAULT_FILTERS,
 ): SearchPayload => {
-  const definition = ASSET_DEFINITIONS[mode];
+  const getTransactionCode = (m: AssetMode): "A" | "B" | "C" => {
+    switch (m) {
+      case "building": return "A";
+      case "land": return "A";
+      case "presale": return "B";
+      case "rental": return "C";
+    }
+  };
   const currentRocYear = new Date().getFullYear() - 1911;
   const propertyTypes = filters.propertyTypes.length > 0
     ? filters.propertyTypes
@@ -325,7 +278,7 @@ export const buildSearchPayload = (
     cityCode: CITIES.find((city) => city.name === cityName)?.code ?? "A",
     district,
     propertyTypes,
-    transactionType: definition.transactionCode,
+    transactionType: getTransactionCode(mode),
     period: {
       startY: filters.period.startY || String(currentRocYear - 2),
       startM: filters.period.startM || "1",
