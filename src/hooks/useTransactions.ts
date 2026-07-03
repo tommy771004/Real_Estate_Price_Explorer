@@ -55,7 +55,7 @@ export function useTransactions(
           throw new Error(result.error || `官方資料服務錯誤 (${response.status})`);
         }
 
-        const mapped = mapOfficialRows(result.data ?? [], getTransactionName(mode));
+        const mapped = mapOfficialRows(result.data ?? [], getTransactionName(mode), cityName);
         setData(mapped);
         setSource(result.source ?? null);
       } catch (loadError) {

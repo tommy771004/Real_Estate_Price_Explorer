@@ -10,6 +10,7 @@ type FilterPanelProps = {
   resultCount: number;
   loading: boolean;
   isOpen: boolean;
+  "aria-expanded"?: boolean;
   advancedOpen: boolean;
   filters: ClientFilters;
   onCityChange: (city: string) => void;

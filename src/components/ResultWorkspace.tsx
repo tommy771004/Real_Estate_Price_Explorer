@@ -1,4 +1,4 @@
-import { ArrowUpRight, Bookmark, Heart, Scale } from "lucide-react";
+import { ArrowUpRight, Bookmark, ChevronUp, Heart, Scale } from "lucide-react";
 import { useMemo, useState } from "react";
 import type { CSSProperties } from "react";
 
@@ -116,15 +116,28 @@ export function ResultWorkspace({
     );
   };
 
+  const [isCollapsed, setIsCollapsed] = useState(true);
+
   return (
-    <section className={`result-workspace glass-surface view-${view}`} aria-live="polite">
-      <div className="sheet-handle" />
-      <div className="result-header">
+    <section className={`result-workspace glass-surface view-${view} ${isCollapsed ? "is-collapsed" : ""}`} aria-live="polite">
+      <button className="sheet-handle" type="button" aria-label={isCollapsed ? "展開結果" : "收合結果"} onClick={() => setIsCollapsed(!isCollapsed)} />
+      <div className="result-header" onClick={() => setIsCollapsed(!isCollapsed)} style={{ cursor: "pointer" }}>
         <div>
           <h2>{loading ? "正在取得官方資料" : `${records.length.toLocaleString("zh-TW")} 筆成交`}</h2>
           <p>符合目前篩選 {visibleRecords.length.toLocaleString("zh-TW")} 筆</p>
         </div>
-        <div className="result-actions">
+        <div className="result-actions" onClick={(e) => e.stopPropagation()}>
+          <button
+            className={`icon-button ${isCollapsed ? "is-collapsed-icon" : ""}`}
+            type="button"
+            aria-label={isCollapsed ? "展開" : "收合"}
+            onClick={(e) => {
+              e.stopPropagation();
+              setIsCollapsed(!isCollapsed);
+            }}
+          >
+            <ChevronUp aria-hidden="true" size={17} className={isCollapsed ? "" : "is-flipped"} />
+          </button>
           <button className="icon-button" type="button" aria-label="收藏目前查詢" onClick={onSaveSearch}>
             <Heart aria-hidden="true" size={17} />
           </button>

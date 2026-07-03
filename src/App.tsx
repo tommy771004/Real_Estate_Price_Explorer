@@ -16,7 +16,6 @@ import {
 } from "lucide-react";
 import { useEffect, useMemo, useState, type CSSProperties, type FormEvent } from "react";
 
-import { AssetDock } from "./components/AssetDock";
 import { FilterPanel } from "./components/FilterPanel";
 import { MapCanvas } from "./components/MapCanvas";
 import {
@@ -473,19 +472,10 @@ export default function App() {
         onSettingsOpen={() => setSettingsOpen(true)}
         onFavoritesOpen={() => setSavedPanelOpen(true)}
         favoriteCount={favoriteRecords.length + savedSearches.length}
+        activeMode={assetMode}
+        onModeChange={setAssetMode}
+        filtersOpen={filtersOpen}
       />
-
-      <AssetDock activeMode={assetMode} onChange={setAssetMode} />
-
-      <button
-        className="floating-filter-button glass-surface pressable"
-        type="button"
-        aria-label="開啟查詢條件"
-        aria-expanded={filtersOpen}
-        onClick={() => setFiltersOpen(true)}
-      >
-        <SlidersHorizontal aria-hidden="true" size={18} />
-      </button>
 
       <FilterPanel
         definition={definition}
@@ -494,6 +484,7 @@ export default function App() {
         resultCount={summary.count}
         loading={loading}
         isOpen={filtersOpen}
+        aria-expanded={filtersOpen}
         advancedOpen={advancedOpen}
         filters={filters}
         onCityChange={handleCityChange}

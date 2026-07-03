@@ -276,24 +276,21 @@ a:focus-visible {
   font-weight: 850;
 }
 
-.asset-dock {
-  position: fixed;
-  z-index: 55;
-  top: 88px;
-  left: 50%;
-  padding: 5px;
-  border-radius: 28px;
+.site-chrome-tabs {
   display: flex;
-  gap: 3px;
-  transform: translateX(-50%);
+  align-items: center;
+  gap: 4px;
+  padding: 3px;
+  border-radius: 24px;
+  background: rgba(69, 96, 85, 0.06);
 }
 
-.asset-tab {
+.site-chrome-tabs .asset-tab {
   min-width: 92px;
-  height: 42px;
+  height: 38px;
   padding: 0 16px;
   border: 0;
-  border-radius: 21px;
+  border-radius: 19px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -310,38 +307,22 @@ a:focus-visible {
     box-shadow var(--motion-fast) ease;
 }
 
-.asset-tab:hover {
+.site-chrome-tabs .asset-tab:hover {
   color: var(--ink);
   transform: translateY(-1px);
 }
 
-.asset-tab.is-active {
+.site-chrome-tabs .asset-tab.is-active {
   color: #a94230;
-  background: rgba(255, 255, 255, 0.78);
-  box-shadow: 0 6px 16px rgba(37, 71, 58, 0.12);
+  background: rgba(255, 255, 255, 0.88);
+  box-shadow: 0 4px 12px rgba(37, 71, 58, 0.1);
   transform: scale(1.025);
-}
-
-.floating-filter-button {
-  position: fixed;
-  z-index: 42;
-  top: 92px;
-  left: 20px;
-  width: 42px;
-  height: 42px;
-  padding: 0;
-  border: 0;
-  border-radius: 50%;
-  display: none;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
 }
 
 .filter-panel {
   position: fixed;
   z-index: 45;
-  top: 146px;
+  top: 88px;
   bottom: 24px;
   left: 20px;
   width: 236px;
@@ -618,7 +599,7 @@ a:focus-visible {
 .summary-strip {
   position: fixed;
   z-index: 35;
-  top: 146px;
+  top: 88px;
   right: 20px;
   left: 272px;
   min-height: 78px;
@@ -669,6 +650,12 @@ a:focus-visible {
   inset: 0;
   z-index: 0;
   overflow: hidden;
+  perspective: 1200px;
+}
+
+.map-canvas.is-3d .leaflet-map {
+  transform: rotateX(45deg) scale(1.4);
+  transform-origin: center center;
 }
 
 .leaflet-map {
@@ -678,6 +665,7 @@ a:focus-visible {
   width: 100%;
   height: 100%;
   background: #d7e5e0;
+  transition: transform 0.5s ease;
 }
 
 .leaflet-container {
@@ -758,9 +746,9 @@ a:focus-visible {
   border: 7px solid rgba(255, 255, 255, 0.88);
   border-radius: 50%;
   display: block;
-  background: var(--asset-accent);
+  background: #ef4444;
   box-shadow:
-    0 0 0 7px color-mix(in srgb, var(--asset-accent) 16%, transparent),
+    0 0 0 7px color-mix(in srgb, #ef4444 16%, transparent),
     0 7px 18px rgba(22, 52, 42, 0.24);
   animation: pin-enter 520ms var(--spring-bouncy) both;
 }
@@ -768,7 +756,7 @@ a:focus-visible {
 .marker-cluster {
   background-clip: padding-box;
   border-radius: 50%;
-  background-color: color-mix(in srgb, var(--asset-accent) 24%, transparent);
+  background-color: color-mix(in srgb, #ef4444 24%, transparent);
 }
 
 .marker-cluster div {
@@ -780,30 +768,32 @@ a:focus-visible {
   border-radius: 50%;
   font: 600 13px/30px var(--font-sans);
   color: #fff;
-  background-color: var(--asset-accent);
+  background-color: #ef4444;
   box-shadow: 0 4px 12px rgba(22, 52, 42, 0.24);
 }
 
 .layer-control {
   position: absolute;
   z-index: 700;
-  top: 238px;
+  top: 180px;
   right: 20px;
   padding: 4px;
   border-radius: 22px;
   display: flex;
+  flex-direction: column;
   align-items: center;
   gap: 2px;
 }
 
 .layer-control > svg {
-  margin: 0 7px;
+  margin: 7px 0;
   color: #53695f;
 }
 
 .layer-control button {
   height: 34px;
-  padding: 0 10px;
+  width: 34px;
+  padding: 0;
   border: 0;
   border-radius: 17px;
   color: #5a6f65;
@@ -811,6 +801,9 @@ a:focus-visible {
   font-size: 10px;
   font-weight: 750;
   cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .layer-control button.is-active {
@@ -822,7 +815,7 @@ a:focus-visible {
 .geocoding-status {
   position: absolute;
   z-index: 701;
-  top: 292px;
+  top: 234px;
   right: 20px;
   width: 190px;
   padding: 11px 13px;
@@ -976,7 +969,7 @@ a:focus-visible {
   position: absolute;
   z-index: 7;
   right: 20px;
-  top: 238px;
+  top: 180px;
   padding: 4px;
   border-radius: 22px;
   display: grid;
@@ -1002,9 +995,11 @@ a:focus-visible {
 .selected-map-record {
   position: absolute;
   z-index: 6;
-  top: 45%;
-  left: 48%;
+  top: 24px;
+  left: 50%;
+  transform: translateX(-50%);
   min-width: 150px;
+  max-width: 60%;
   padding: 12px 15px;
   border-radius: 20px;
   display: grid;
@@ -1025,7 +1020,7 @@ a:focus-visible {
 .insight-panel {
   position: fixed;
   z-index: 37;
-  top: 244px;
+  top: 186px;
   right: 20px;
   width: 274px;
   padding: 13px 16px 15px;
@@ -1212,7 +1207,7 @@ a:focus-visible {
 .search-intelligence {
   position: fixed;
   z-index: 34;
-  top: 338px;
+  top: 280px;
   left: 272px;
   width: 260px;
   padding: 13px;
@@ -1444,6 +1439,13 @@ a:focus-visible {
   border-radius: var(--radius-sheet);
   overflow: hidden;
   animation: sheet-enter 540ms var(--spring-smooth) both;
+  transition: min-height 0.3s ease, max-height 0.3s ease, padding 0.3s ease;
+}
+
+.result-workspace.is-collapsed {
+  min-height: 72px;
+  max-height: 72px;
+  padding-bottom: 0;
 }
 
 .sheet-handle {
@@ -1752,11 +1754,11 @@ a:focus-visible {
 @keyframes bubble-enter {
   from {
     opacity: 0;
-    transform: translateY(12px) scale(0.9);
+    margin-top: 12px;
   }
   to {
     opacity: 1;
-    transform: translateY(0) scale(1);
+    margin-top: 0;
   }
 }
 
@@ -1822,6 +1824,10 @@ a:focus-visible {
     font-size: 12px;
   }
 
+  .brand .brand-text {
+    display: none;
+  }
+
   .brand-mark {
     width: 9px;
     height: 9px;
@@ -1846,42 +1852,29 @@ a:focus-visible {
     height: 34px;
   }
 
-  .asset-dock {
-    top: 70px;
-    right: 10px;
-    left: 10px;
-    width: auto;
-    padding: 4px;
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    transform: none;
+  .site-chrome-tabs {
+    gap: 2px;
+    padding: 2px;
+    border-radius: 20px;
+    background: rgba(69, 96, 85, 0.04);
   }
 
-  .asset-tab {
+  .site-chrome-tabs .asset-tab {
     min-width: 0;
-    height: 38px;
-    padding: 0 4px;
-    border-radius: 19px;
-    gap: 4px;
+    height: 32px;
+    padding: 0 6px;
+    border-radius: 16px;
+    gap: 3px;
     font-size: 10px;
   }
 
-  .asset-tab svg {
-    width: 14px;
-    height: 14px;
-  }
-
-  .floating-filter-button {
-    top: 122px;
-    right: 11px;
-    left: auto;
-    width: 42px;
-    height: 42px;
-    display: flex;
+  .site-chrome-tabs .asset-tab svg {
+    width: 12px;
+    height: 12px;
   }
 
   .filter-panel {
-    top: 120px;
+    top: 70px;
     right: 10px;
     bottom: 74px;
     left: 10px;
@@ -1910,7 +1903,7 @@ a:focus-visible {
   }
 
   .summary-strip {
-    top: 120px;
+    top: 70px;
     right: 10px;
     left: 10px;
     min-height: 58px;
@@ -1938,36 +1931,27 @@ a:focus-visible {
   }
 
   .map-tools {
-    top: 208px;
+    top: 158px;
     right: 11px;
   }
 
   .layer-control {
-    top: 186px;
     right: 10px;
-    left: auto;
-    max-width: calc(100vw - 20px);
-    overflow-x: auto;
-  }
-
-  .layer-control > svg {
-    flex: 0 0 auto;
-  }
-
-  .layer-control button {
-    flex: 1 0 auto;
+    top: 140px;
   }
 
   .geocoding-status {
-    top: 234px;
+    top: 184px;
     right: 10px;
     width: 180px;
   }
 
   .selected-map-record {
-    top: 43%;
-    left: 26%;
+    top: 16px;
+    left: 50%;
     min-width: 132px;
+    width: max-content;
+    max-width: 80vw;
   }
 
   .insight-panel {
@@ -2001,6 +1985,10 @@ a:focus-visible {
     max-height: min(40dvh, 240px);
     padding: 9px 14px 14px;
     border-radius: 28px;
+  }
+  .result-workspace.is-collapsed {
+    min-height: 84px;
+    max-height: 84px;
   }
 
   .search-intelligence {

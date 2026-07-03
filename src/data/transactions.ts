@@ -127,16 +127,25 @@ const inRange = (value: number, minRaw: string, maxRaw: string) => {
 export const mapOfficialRows = (
   rows: unknown[][],
   transactionName: "買賣" | "預售屋" | "租賃",
+  cityName: string = ""
 ): Transaction[] => {
   const isRent = transactionName === "租賃";
   const isPresale = transactionName === "預售屋";
 
   return rows
     .filter((row) => Array.isArray(row) && row.length > 1)
-    .map((row, index) => ({
-      district: String(row[0] ?? ""),
-      transactionType: String(row[1] ?? ""),
-      address: String(row[2] ?? ""),
+    .map((row, index) => {
+      const dist = String(row[0] ?? "");
+      let rawAddress = String(row[2] ?? "");
+      
+      if (rawAddress && !rawAddress.startsWith(cityName)) {
+        rawAddress = `${cityName}${dist}${rawAddress}`;
+      }
+
+      return {
+        district: dist,
+        transactionType: String(row[1] ?? ""),
+        address: rawAddress,
       area: String(row[3] ?? ""),
       zoning: String(row[4] ?? row[5] ?? ""),
       date: String(row[7] ?? ""),
@@ -161,7 +170,8 @@ export const mapOfficialRows = (
       remarks: String(row[isRent ? 27 : 26] ?? ""),
       id: String(row[isRent ? 28 : 27] ?? `official-${index}`),
       buildCase: isPresale ? String(row[28] ?? "") : undefined,
-    }));
+    };
+  });
 };
 
 export const filterTransactionsByAssetMode = (

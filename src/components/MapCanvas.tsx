@@ -63,7 +63,7 @@ const toCoordinate = (value: string | number | undefined) => {
     : null;
 };
 
-function MapBounds({ records }: { records: Transaction[] }) {
+function MapBounds({ records, resetTrigger }: { records: Transaction[], resetTrigger: number }) {
   const map = useMap();
 
   useEffect(() => {
@@ -82,7 +82,7 @@ function MapBounds({ records }: { records: Transaction[] }) {
         animate: true,
       });
     }
-  }, [map, records]);
+  }, [map, records, resetTrigger]);
 
   return null;
 }
@@ -99,6 +99,8 @@ export function MapCanvas({
   onSelectRecord,
 }: MapCanvasProps) {
   const [layer, setLayer] = useState<MapLayer>("default");
+  const [is3D, setIs3D] = useState(false);
+  const [resetTrigger, setResetTrigger] = useState(0);
   const city = CITIES.find((item) => item.name === cityName);
   const districtInfo = (CITY_DISTRICTS[cityName] ?? []).find((item) => item.name === district);
   const center: [number, number] = [
@@ -114,7 +116,7 @@ export function MapCanvas({
   const tile = TILE_LAYERS[layer];
 
   return (
-    <section className="map-canvas" aria-label={`${cityName}${district}${mode}成交地圖`}>
+    <section className={`map-canvas ${is3D ? "is-3d" : ""}`} aria-label={`${cityName}${district}${mode}成交地圖`}>
       <MapContainer
         key={`${cityName}-${district}`}
         center={center}
@@ -123,7 +125,7 @@ export function MapCanvas({
         className="leaflet-map"
       >
         <TileLayer url={tile.url} attribution={tile.attribution} />
-        <MapBounds records={geocodedRecords} />
+        <MapBounds records={geocodedRecords} resetTrigger={resetTrigger} />
         <MarkerClusterGroup chunkedLoading maxClusterRadius={60}>
           {geocodedRecords.map((record) => {
             const lat = toCoordinate(record.lat)!;
@@ -135,11 +137,6 @@ export function MapCanvas({
                 icon={markerIcon}
                 eventHandlers={{ click: () => onSelectRecord(record) }}
               >
-                <Tooltip direction="top" offset={[0, -14]} opacity={1}>
-                  <strong>{record.address || record.district}</strong>
-                  <br />
-                  <span>{formatTransactionPrice(record.totalPrice, mode)}</span>
-                </Tooltip>
                 <Popup>
                   <button className="map-popup" type="button" onClick={() => onSelectRecord(record)}>
                     <strong>{record.address || record.district}</strong>
@@ -167,6 +164,9 @@ export function MapCanvas({
             {value === "default" ? "標準" : value === "satellite" ? "衛星" : "地標"}
           </button>
         ))}
+        <div style={{ width: 16, height: 1, background: "rgba(0,0,0,0.1)", margin: "4px 0" }} />
+        <button type="button" onClick={() => setResetTrigger(v => v + 1)}>重置</button>
+        <button type="button" className={is3D ? "is-active" : ""} onClick={() => setIs3D(!is3D)}>3D</button>
       </div>
 
       {isGeocoding ? (
