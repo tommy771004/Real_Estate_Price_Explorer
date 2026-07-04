@@ -1,5 +1,23 @@
 type IntakePayload = Record<string, unknown>;
 
+const normalizeLocation = (payload: IntakePayload) => {
+  const nested = typeof payload.location === "object" && payload.location
+    ? payload.location as IntakePayload
+    : {};
+  const numberOrNull = (value: unknown) => {
+    if (value === null || value === undefined || value === "") return null;
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : null;
+  };
+  return {
+    latitude: numberOrNull(payload.latitude ?? nested.latitude),
+    longitude: numberOrNull(payload.longitude ?? nested.longitude),
+    county: String(payload.county ?? nested.county ?? "").trim() || null,
+    district: String(payload.district ?? nested.district ?? "").trim() || null,
+    location_method: String(payload.location_method ?? nested.method ?? "unknown").trim() || "unknown",
+  };
+};
+
 export const validateFeedbackPayload = (payload: IntakePayload) => {
   const category = String(payload.category ?? "").trim();
   const content = String(payload.content ?? "").trim();
@@ -12,8 +30,7 @@ export const validateFeedbackPayload = (payload: IntakePayload) => {
       category,
       content,
       contact: String(payload.contact ?? "").trim() || null,
-      location: payload.location ?? null,
-      createdAt: new Date().toISOString(),
+      ...normalizeLocation(payload),
     },
   };
 };
@@ -26,38 +43,57 @@ export const validateAuditPayload = (payload: IntakePayload) => {
     data: {
       action_type: actionType,
       details: payload.details ?? null,
-      location: payload.location ?? null,
-      createdAt: new Date().toISOString(),
+      ...normalizeLocation(payload),
     },
   };
 };
 
-export const forwardIntake = async (kind: "feedback" | "audit", data: unknown) => {
-  const endpoint = kind === "feedback"
-    ? process.env.FEEDBACK_WEBHOOK_URL
-    : process.env.AUDIT_WEBHOOK_URL;
-
-  if (!endpoint) {
+export const buildIntakeWrite = (kind: "feedback" | "audit", data: IntakePayload) => {
+  if (kind === "feedback") {
     return {
-      success: false,
-      status: 503,
-      error: "尚未設定資料寫入端點",
+      sql: `INSERT INTO feedbacks
+        (category, content, contact, latitude, longitude, county, district, location_method)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+        RETURNING id`,
+      params: [
+        data.category, data.content, data.contact, data.latitude,
+        data.longitude, data.county, data.district, data.location_method,
+      ],
     };
   }
+  return {
+    sql: `INSERT INTO audit_logs
+      (action_type, details, latitude, longitude, county, district, location_method)
+      VALUES ($1, $2, $3, $4, $5, $6, $7)
+      RETURNING id`,
+    params: [
+      data.action_type, data.details, data.latitude, data.longitude,
+      data.county, data.district, data.location_method,
+    ],
+  };
+};
 
-  const response = await fetch(endpoint, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(data),
-  });
+type QueryExecutor = (
+  sql: string,
+  params: unknown[],
+) => Promise<{ rows: Array<{ id?: number }> }>;
 
-  if (!response.ok) {
+export const persistIntake = async (
+  kind: "feedback" | "audit",
+  data: IntakePayload,
+  execute?: QueryExecutor,
+) => {
+  try {
+    const query = execute ?? (await import("./db")).queryDatabase;
+    const write = buildIntakeWrite(kind, data);
+    const result = await query(write.sql, write.params);
+    return { success: true, status: 200, data: { id: result.rows[0]?.id ?? null } };
+  } catch (error) {
+    const unavailable = error instanceof Error && error.name === "DatabaseUnavailableError";
     return {
       success: false,
-      status: response.status,
-      error: `資料寫入端點回應錯誤 (${response.status})`,
+      status: unavailable ? 503 : 500,
+      error: unavailable ? error.message : "資料庫寫入失敗",
     };
   }
-
-  return { success: true, status: 200 };
 };

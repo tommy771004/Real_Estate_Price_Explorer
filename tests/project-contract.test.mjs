@@ -24,8 +24,9 @@ test("prototype is independently installable and deployable to Vercel", async ()
 });
 
 test("app exposes four asset modes and semantic interactive views", async () => {
-  const [app, map, hook] = await Promise.all([
+  const [app, chrome, map, hook] = await Promise.all([
     read("src/App.tsx"),
+    read("src/components/SiteChrome.tsx"),
     read("src/components/MapCanvas.tsx"),
     read("src/hooks/useTransactions.ts"),
   ]);
@@ -34,7 +35,7 @@ test("app exposes four asset modes and semantic interactive views", async () => 
     assert.match(app, new RegExp(label));
   }
 
-  assert.match(app, /aria-pressed=/);
+  assert.match(chrome, /aria-pressed=/);
   assert.match(app, /aria-expanded=/);
   assert.match(app, /MapCanvas/);
   assert.match(app, /ResultWorkspace/);

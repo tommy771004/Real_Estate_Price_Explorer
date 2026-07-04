@@ -215,15 +215,6 @@ export default function App() {
     );
   }, [filteredData]);
 
-  const locationRequested = React.useRef(false);
-
-  useEffect(() => {
-    if (!locationRequested.current) {
-      locationRequested.current = true;
-      void requestUserLocation();
-    }
-  }, []);
-
   useEffect(() => {
     setAdvancedOpen(false);
     setFilters((current) => ({

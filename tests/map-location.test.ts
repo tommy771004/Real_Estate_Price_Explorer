@@ -11,6 +11,7 @@ import {
 test("transaction address ranges are normalized without inventing a different road", () => {
   assert.equal(cleanTransactionAddress("忠孝東路四段100～120號"), "忠孝東路四段100號");
   assert.equal(cleanTransactionAddress("民生路10-12號"), "民生路10號");
+  assert.equal(cleanTransactionAddress("隆興街１７０號五樓"), "隆興街170號五樓");
 });
 
 test("geocoding accepts Taiwan coordinates near the selected city and rejects remote matches", () => {

@@ -16,7 +16,7 @@ export const toMapCoordinate = (value: number | string | undefined) => {
 };
 
 export const cleanTransactionAddress = (address: string) =>
-  address.trim().replace(/(\d+)\s*[~～-]\s*\d+[號號]?/g, "$1號");
+  address.normalize("NFKC").trim().replace(/(\d+)\s*[~-]\s*\d+[號號]?/g, "$1號");
 
 export const isTaiwanCoordinate = (lat: number, lng: number) =>
   Number.isFinite(lat) &&

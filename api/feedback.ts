@@ -1,4 +1,4 @@
-import { forwardIntake, validateFeedbackPayload } from "../server/intake";
+import { persistIntake, validateFeedbackPayload } from "../server/intake";
 
 export default async function handler(request: any, response: any) {
   if (request.method !== "POST") {
@@ -9,6 +9,6 @@ export default async function handler(request: any, response: any) {
   const validated = validateFeedbackPayload(request.body ?? {});
   if (!validated.ok) return response.status(400).json({ success: false, error: validated.error });
 
-  const result = await forwardIntake("feedback", validated.data);
+  const result = await persistIntake("feedback", validated.data);
   return response.status(result.status).json(result);
 }

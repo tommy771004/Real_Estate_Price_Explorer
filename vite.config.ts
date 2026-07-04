@@ -1,7 +1,7 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import { searchOfficialTransactions } from "./server/search";
-import { forwardIntake, validateAuditPayload, validateFeedbackPayload } from "./server/intake";
+import { persistIntake, validateAuditPayload, validateFeedbackPayload } from "./server/intake";
 
 const readJsonBody = (request: any) =>
   new Promise<Record<string, unknown>>((resolve, reject) => {
@@ -48,7 +48,7 @@ const officialDataDevApi = () => ({
       try {
         const validated = validateFeedbackPayload(await readJsonBody(request));
         if (!validated.ok) return writeJson(response, 400, { success: false, error: validated.error });
-        const result = await forwardIntake("feedback", validated.data);
+        const result = await persistIntake("feedback", validated.data);
         return writeJson(response, result.status, result);
       } catch (error) {
         return writeJson(response, 500, { success: false, error: error instanceof Error ? error.message : "送出失敗" });
@@ -59,7 +59,7 @@ const officialDataDevApi = () => ({
       try {
         const validated = validateAuditPayload(await readJsonBody(request));
         if (!validated.ok) return writeJson(response, 400, { success: false, error: validated.error });
-        const result = await forwardIntake("audit", validated.data);
+        const result = await persistIntake("audit", validated.data);
         return writeJson(response, result.status, result);
       } catch (error) {
         return writeJson(response, 500, { success: false, error: error instanceof Error ? error.message : "送出失敗" });
