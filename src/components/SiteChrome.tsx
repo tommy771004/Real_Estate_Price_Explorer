@@ -66,17 +66,6 @@ export function SiteChrome({
       </div>
 
       <div className="chrome-actions">
-        <button
-          className="icon-button"
-          type="button"
-          aria-label={reduceTransparency ? "啟用透明玻璃" : "降低透明效果"}
-          aria-pressed={reduceTransparency}
-          onClick={onTransparencyToggle}
-        >
-          {reduceTransparency
-            ? <EyeOff aria-hidden="true" size={18} />
-            : <Eye aria-hidden="true" size={18} />}
-        </button>
         <button className="icon-button" type="button" aria-label="設定" onClick={onSettingsOpen}>
           <Settings aria-hidden="true" size={18} />
         </button>

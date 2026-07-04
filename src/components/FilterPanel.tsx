@@ -1,7 +1,9 @@
-import { ChevronDown, Search, SlidersHorizontal, X } from "lucide-react";
+import { useState } from "react";
+import { ChevronDown, Search, SlidersHorizontal, X, MapPin } from "lucide-react";
 
 import { CITIES, CITY_DISTRICTS } from "../data/locations";
 import { defaultPropertyTypesForMode, type AssetDefinition, type ClientFilters } from "../data/transactions";
+import { LocationSelectModal } from "./LocationSelectModal";
 
 type FilterPanelProps = {
   definition: AssetDefinition;
@@ -39,6 +41,7 @@ export function FilterPanel({
   onClose,
   onSearch,
 }: FilterPanelProps) {
+  const [isLocationModalOpen, setIsLocationModalOpen] = useState(false);
   const districts = CITY_DISTRICTS[cityName] ?? [];
   const propertyOptions = defaultPropertyTypesForMode(definition.mode);
   const currentRocYear = new Date().getFullYear() - 1911;
@@ -61,22 +64,18 @@ export function FilterPanel({
       </div>
 
       <div className="filter-controls">
-        <label className="select-control">
-          <span className="sr-only">縣市</span>
-          <select value={cityName} onChange={(event) => onCityChange(event.target.value)}>
-            {CITIES.map((city) => <option key={city.code} value={city.name}>{city.name}</option>)}
-          </select>
-          <ChevronDown aria-hidden="true" size={15} />
-        </label>
-
-        <label className="select-control">
-          <span className="sr-only">行政區</span>
-          <select value={district} onChange={(event) => onDistrictChange(event.target.value)}>
-            <option value="全部">全部行政區</option>
-            {districts.map((item) => <option key={item.code} value={item.name}>{item.name}</option>)}
-          </select>
-          <ChevronDown aria-hidden="true" size={15} />
-        </label>
+        <button
+          className="location-trigger-btn select-control"
+          type="button"
+          onClick={() => setIsLocationModalOpen(true)}
+          aria-label="選擇縣市與行政區"
+        >
+          <MapPin size={15} aria-hidden="true" className="location-trigger-icon" />
+          <span className="location-trigger-label">
+            {cityName} {district === "全部" ? "全部區域" : district}
+          </span>
+          <ChevronDown aria-hidden="true" size={15} className="location-trigger-arrow" />
+        </button>
 
         <label className="text-control">
           <span className="sr-only">關鍵字</span>
@@ -88,6 +87,17 @@ export function FilterPanel({
           />
         </label>
       </div>
+
+      <LocationSelectModal
+        isOpen={isLocationModalOpen}
+        onClose={() => setIsLocationModalOpen(false)}
+        currentCityName={cityName}
+        currentDistrict={district}
+        onSelect={(city, dist) => {
+          onCityChange(city);
+          onDistrictChange(dist);
+        }}
+      />
 
       <button className="primary-action pressable" type="button" onClick={onSearch} disabled={loading}>
         <Search aria-hidden="true" size={17} />
@@ -112,7 +122,7 @@ export function FilterPanel({
       <div className={`advanced-options ${advancedOpen ? "is-open" : ""}`}>
         {propertyOptions.length > 0 ? (
           <fieldset className="chip-group">
-            <legend>交易型態</legend>
+            <legend>物業類型</legend>
             {propertyOptions.map((type) => (
               <label key={type}>
                 <input
@@ -170,6 +180,30 @@ export function FilterPanel({
           </label>
         </div>
 
+        <fieldset className="chip-group">
+          <legend>屋齡區間</legend>
+          {[
+            { label: "不限", min: "", max: "" },
+            { label: "5年內", min: "", max: "5" },
+            { label: "5-10年", min: "5", max: "10" },
+            { label: "10-20年", min: "10", max: "20" },
+            { label: "20年以上", min: "20", max: "" }
+          ].map((option) => {
+            const isActive = filters.age.min === option.min && filters.age.max === option.max;
+            return (
+              <label key={option.label}>
+                <input
+                  type="radio"
+                  name="age-range"
+                  checked={isActive}
+                  onChange={() => onFiltersChange({ age: { min: option.min, max: option.max } })}
+                />
+                <span>{option.label}</span>
+              </label>
+            );
+          })}
+        </fieldset>
+
         <div className="range-grid">
           <label>
             <span>單價最小</span>
@@ -205,24 +239,6 @@ export function FilterPanel({
               inputMode="decimal"
               value={filters.area.max}
               onChange={(event) => onFiltersChange({ area: { ...filters.area, max: event.target.value } })}
-            />
-          </label>
-          <label>
-            <span>屋齡最小</span>
-            <input
-              type="number"
-              inputMode="numeric"
-              value={filters.age.min}
-              onChange={(event) => onFiltersChange({ age: { ...filters.age, min: event.target.value } })}
-            />
-          </label>
-          <label>
-            <span>屋齡最大</span>
-            <input
-              type="number"
-              inputMode="numeric"
-              value={filters.age.max}
-              onChange={(event) => onFiltersChange({ age: { ...filters.age, max: event.target.value } })}
             />
           </label>
         </div>

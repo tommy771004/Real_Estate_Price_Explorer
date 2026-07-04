@@ -14,6 +14,45 @@ export type AssetDefinition = {
   accent: string;
 };
 
+export const ASSET_DEFINITIONS: Record<AssetMode, AssetDefinition> = {
+  building: {
+    mode: "building",
+    label: "成屋",
+    queryLabel: "買賣",
+    transactionName: "買賣",
+    transactionCode: "A",
+    guidance: ["請輸入路名或社區名", "不含預售屋資料"],
+    accent: "bg-blue-500",
+  },
+  land: {
+    mode: "land",
+    label: "土地",
+    queryLabel: "買賣",
+    transactionName: "買賣",
+    transactionCode: "A",
+    guidance: ["請輸入地段或地建號", "僅顯示純土地交易"],
+    accent: "bg-emerald-600",
+  },
+  presale: {
+    mode: "presale",
+    label: "預售屋",
+    queryLabel: "預售屋",
+    transactionName: "預售屋",
+    transactionCode: "B",
+    guidance: ["請輸入建案名稱", "解約案件不予顯示"],
+    accent: "bg-purple-500",
+  },
+  rental: {
+    mode: "rental",
+    label: "租賃",
+    queryLabel: "租賃",
+    transactionName: "租賃",
+    transactionCode: "C",
+    guidance: ["請輸入路名或社區名", "不含社會住宅包租代管"],
+    accent: "bg-amber-500",
+  },
+};
+
 export type SearchPayload = {
   cityCode: string;
   district: string;

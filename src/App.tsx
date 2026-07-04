@@ -14,7 +14,7 @@ import {
   Type,
   X,
 } from "lucide-react";
-import { useEffect, useMemo, useState, type CSSProperties, type FormEvent } from "react";
+import React, { useEffect, useMemo, useState, type CSSProperties, type FormEvent } from "react";
 
 import { FilterPanel } from "./components/FilterPanel";
 import { MapCanvas } from "./components/MapCanvas";
@@ -23,6 +23,7 @@ import {
   type WorkspaceView,
 } from "./components/ResultWorkspace";
 import { SiteChrome } from "./components/SiteChrome";
+import { TrendComparisonChart } from "./components/TrendComparisonChart";
 import { CITIES, CITY_DISTRICTS } from "./data/locations";
 import {
   buildSearchLabel,
@@ -104,20 +105,10 @@ const ASSET_DEFINITIONS: Record<AssetMode, {
 };
 import { useGeocoding } from "./hooks/useGeocoding";
 import { useTransactions } from "./hooks/useTransactions";
+import { isTaiwanCoordinate, matchTaiwanLocation } from "./lib/mapLocation";
 import type { Transaction } from "./types/real-estate";
 
 const ASSET_MODE_LABELS = ["房地", "土地", "預售屋", "租賃"] as const;
-
-const WORKSPACE_VIEWS: Array<{
-  value: WorkspaceView;
-  label: string;
-  icon: typeof Map;
-}> = [
-  { value: "map", label: "地圖", icon: Map },
-  { value: "list", label: "列表", icon: List },
-  { value: "trend", label: "分布", icon: BarChart3 },
-  { value: "compare", label: "比較", icon: Scale },
-];
 
 type SavedSearch = {
   id: string;
@@ -150,8 +141,9 @@ export default function App() {
   const [assetMode, setAssetMode] = useState<AssetMode>("land");
   const [cityName, setCityName] = useState("臺北市");
   const [district, setDistrict] = useState("全部");
-  const [view, setView] = useState<WorkspaceView>("map");
+  const [view, setView] = useState<WorkspaceView>("list");
   const [filtersOpen, setFiltersOpen] = useState(() => window.innerWidth > 760);
+  const [isSummaryExpanded, setIsSummaryExpanded] = useState(false);
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const [insightOpen, setInsightOpen] = useState(() => window.innerWidth > 760);
   const [reduceTransparency, setReduceTransparency] = useState(false);
@@ -222,6 +214,15 @@ export default function App() {
       filteredData.find((record) => record.id === current?.id) ?? filteredData[0] ?? null,
     );
   }, [filteredData]);
+
+  const locationRequested = React.useRef(false);
+
+  useEffect(() => {
+    if (!locationRequested.current) {
+      locationRequested.current = true;
+      void requestUserLocation();
+    }
+  }, []);
 
   useEffect(() => {
     setAdvancedOpen(false);
@@ -381,21 +382,81 @@ export default function App() {
       const distance = Math.hypot(latitude - (next.lat ?? latitude), longitude - (next.lng ?? longitude));
       return distance < best.distance ? { name: next.name, distance } : best;
     }, { name: cityName, distance: Number.POSITIVE_INFINITY });
-    const districtMatch = (CITY_DISTRICTS[city.name] ?? []).reduce((best, next) => {
-      const distance = Math.hypot(latitude - (next.lat ?? latitude), longitude - (next.lng ?? longitude));
+    const districtsWithCoords = (CITY_DISTRICTS[city.name] ?? []).filter(
+      (d) => d.lat !== undefined && d.lng !== undefined
+    );
+    if (districtsWithCoords.length === 0) {
+      return { county: city.name, district: "全部" };
+    }
+    const districtMatch = districtsWithCoords.reduce((best, next) => {
+      const distance = Math.hypot(latitude - (next.lat as number), longitude - (next.lng as number));
       return distance < best.distance ? { name: next.name, distance } : best;
     }, { name: "全部", distance: Number.POSITIVE_INFINITY });
     return { county: city.name, district: districtMatch.name };
   };
 
+  const resolveCountyDistrict = async (latitude: number, longitude: number) => {
+    if (!isTaiwanCoordinate(latitude, longitude)) {
+      return { county: cityName, district: "全部" };
+    }
+    try {
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&accept-language=zh-TW`,
+        {
+          headers: { "User-Agent": "TaiwanRealEstate/1.0" },
+        }
+      );
+      if (response.ok) {
+        const result = await response.json();
+        if (result && result.address) {
+          const matched = matchTaiwanLocation(result.address);
+          if (matched) return matched;
+        }
+      }
+    } catch (e) {
+      console.warn("Reverse geocoding failed, falling back to mathematical closest location:", e);
+    }
+    return closestLocation(latitude, longitude);
+  };
+
   const requestUserLocation = async () => {
+    const fallbackToIP = async () => {
+      try {
+        const res = await fetch("https://get.geojs.io/v1/ip/geo.json");
+        const data = await res.json();
+        if (data && data.latitude && data.longitude) {
+          const lat = parseFloat(data.latitude);
+          const lng = parseFloat(data.longitude);
+          const resolved = await resolveCountyDistrict(lat, lng);
+          const nextLocation = {
+            latitude: lat,
+            longitude: lng,
+            county: resolved.county,
+            district: resolved.district,
+            method: "manual" as const,
+          };
+          setUserLocation(nextLocation);
+          setCityName(resolved.county);
+          setDistrict(resolved.district);
+          setStatusMessage(`已依基地台切換到 ${resolved.county}${resolved.district}`);
+          void sendAudit("location_permission_ip_fallback", nextLocation);
+        } else {
+          setStatusMessage("無法取得基地台位置");
+        }
+      } catch (e) {
+        setStatusMessage("無法取得基地台位置");
+      }
+    };
+
     if (!navigator.geolocation) {
-      setStatusMessage("此瀏覽器不支援定位權限");
+      setStatusMessage("此瀏覽器不支援定位權限，嘗試基地台定位...");
+      void fallbackToIP();
       return;
     }
+    
     navigator.geolocation.getCurrentPosition(
-      (position) => {
-        const resolved = closestLocation(position.coords.latitude, position.coords.longitude);
+      async (position) => {
+        const resolved = await resolveCountyDistrict(position.coords.latitude, position.coords.longitude);
         const nextLocation = {
           latitude: position.coords.latitude,
           longitude: position.coords.longitude,
@@ -410,8 +471,9 @@ export default function App() {
         void sendAudit("location_permission_accept", nextLocation);
       },
       () => {
-        setStatusMessage("未取得定位權限");
+        setStatusMessage("未取得定位權限，嘗試基地台定位...");
         void sendAudit("location_permission_deny");
+        void fallbackToIP();
       },
       { enableHighAccuracy: true, timeout: 6000, maximumAge: 60000 },
     );
@@ -497,18 +559,80 @@ export default function App() {
       />
 
       <main className="workspace">
-        <section className="summary-strip glass-surface" key={`${assetMode}-${loading}`}>
+        <section 
+          className={`summary-strip glass-surface ${isSummaryExpanded ? "is-expanded" : "is-collapsed"}`} 
+          key={`${assetMode}-${loading}`}
+        >
+          {/* Mobile touch indicator (handle) */}
+          <button 
+            className="summary-strip-handle" 
+            type="button" 
+            onClick={() => setIsSummaryExpanded(!isSummaryExpanded)}
+            aria-label={isSummaryExpanded ? "收合概況與熱門查詢" : "展開所有統計與熱門查詢"}
+          >
+            <span className="handle-bar"></span>
+          </button>
+
+          {/* Mobile Collapsed State: keeps only key overview data */}
+          <div className="summary-mobile-collapsed" onClick={() => setIsSummaryExpanded(true)}>
+            <div className="collapsed-left">
+              <span className="collapsed-city">{cityName}{district === "全部" ? "整個縣市" : district}</span>
+              <span className="collapsed-label">{summary.metrics[0]?.label}</span>
+            </div>
+            <div className="collapsed-right">
+              <strong className="collapsed-value">{loading ? "讀取中" : summary.metrics[0]?.value}</strong>
+              {summary.metrics[0]?.note && <small className="collapsed-note">{summary.metrics[0]?.note}</small>}
+            </div>
+          </div>
+
           <div className="summary-heading">
             <span className="ui-label">{cityName}{district === "全部" ? "" : district}</span>
             <strong>{definition.queryLabel}概況</strong>
           </div>
-          {summary.metrics.map((metric) => (
-            <div className="summary-metric" key={metric.label}>
-              <span>{metric.label}</span>
-              <strong>{loading ? "讀取中" : metric.value}</strong>
-              <small>{metric.note}</small>
+
+          <div className="summary-metrics-list">
+            {summary.metrics.map((metric) => (
+              <div className="summary-metric" key={metric.label}>
+                <span>{metric.label}</span>
+                <strong>{loading ? "讀取中" : metric.value}</strong>
+                <small>{metric.note}</small>
+              </div>
+            ))}
+          </div>
+
+          <TrendComparisonChart 
+            data={data}
+            district={district}
+            cityName={cityName}
+            assetMode={assetMode}
+          />
+
+          {/* Mobile Hot Queries (Popular Districts) Horizontal Chip List */}
+          <div className="summary-hot-chips">
+            <div className="hot-chips-title">熱門查詢</div>
+            <div className="hot-chips-scroll">
+              {popularDistricts.length === 0 ? (
+                <span className="hot-chips-empty">依目前官方資料產生</span>
+              ) : (
+                popularDistricts.map((item) => (
+                  <button 
+                    key={item.query} 
+                    type="button" 
+                    className="hot-chip-btn pressable"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setDistrict(item.query);
+                      // Optionally collapse upon selecting a popular query to improve flow
+                      setIsSummaryExpanded(false);
+                    }}
+                  >
+                    <span className="chip-text">{item.query}</span>
+                    <span className="chip-count">{item.count}筆</span>
+                  </button>
+                ))
+              )}
             </div>
-          ))}
+          </div>
         </section>
 
         <aside className="search-intelligence glass-surface" aria-label="搜尋輔助">
@@ -544,12 +668,14 @@ export default function App() {
           geocodedCount={geocodedCount}
           totalToGeocode={totalToGeocode}
           onSelectRecord={setSelectedRecord}
+          onSelectDistrict={setDistrict}
         />
 
 
 
         <div id="results">
           <ResultWorkspace
+            cityName={cityName}
             mode={assetMode}
             records={data}
             visibleRecords={filteredData}
@@ -565,24 +691,10 @@ export default function App() {
             onToggleFavorite={() => toggleFavoriteRecord(selectedRecord)}
             onAddToCompare={() => addToCompare(selectedRecord ?? filteredData[0] ?? null)}
             sortLabel={editableCopy.empty}
+            onViewChange={setView}
           />
         </div>
       </main>
-
-      <nav className="view-dock glass-surface" aria-label="結果檢視模式">
-        {WORKSPACE_VIEWS.map(({ value, label, icon: Icon }) => (
-          <button
-            key={value}
-            className={view === value ? "is-active" : ""}
-            type="button"
-            aria-pressed={view === value}
-            onClick={() => setView(value)}
-          >
-            <Icon aria-hidden="true" size={17} />
-            <span>{label}</span>
-          </button>
-        ))}
-      </nav>
 
       <span className="sr-only">{ASSET_MODE_LABELS.join("、")}</span>
       {statusMessage ? <div className="toast glass-surface" role="status">{statusMessage}</div> : null}

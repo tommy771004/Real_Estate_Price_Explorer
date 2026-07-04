@@ -4,3 +4,6 @@ dist/
 *.local
 *.tsbuildinfo
 tests/experience.test.ts
+
+.vercel
+.env*

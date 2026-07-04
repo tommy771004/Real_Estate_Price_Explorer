@@ -2,14 +2,15 @@ import L from "leaflet";
 import { Layers3, LocateFixed } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import {
+  Circle,
   MapContainer,
   Marker,
   Popup,
   TileLayer,
   Tooltip,
   useMap,
+  useMapEvents,
 } from "react-leaflet";
-import MarkerClusterGroup from "react-leaflet-cluster";
 
 import { CITIES, CITY_DISTRICTS } from "../data/locations";
 import {
@@ -17,6 +18,11 @@ import {
   formatUnitPrice,
   type AssetMode,
 } from "../data/transactions";
+import {
+  buildDistrictMapCoordinates,
+  isPlausibleCoordinateForCity,
+  toMapCoordinate,
+} from "../lib/mapLocation";
 import type { Transaction } from "../types/real-estate";
 
 type MapLayer = "default" | "satellite" | "landmark";
@@ -31,6 +37,7 @@ type MapCanvasProps = {
   geocodedCount: number;
   totalToGeocode: number;
   onSelectRecord: (record: Transaction) => void;
+  onSelectDistrict?: (district: string) => void;
 };
 
 const TILE_LAYERS: Record<MapLayer, { url: string; attribution: string }> = {
@@ -48,19 +55,31 @@ const TILE_LAYERS: Record<MapLayer, { url: string; attribution: string }> = {
   },
 };
 
-const markerIcon = L.divIcon({
-  className: "real-map-marker",
-  html: "<span></span>",
-  iconSize: [32, 32],
-  iconAnchor: [16, 16],
-  popupAnchor: [0, -14],
-});
+const getMarkerIcon = (isSelected: boolean) => {
+  return L.divIcon({
+    className: `real-map-marker ${isSelected ? "is-selected" : ""}`,
+    html: `
+      <span class="marker-dot"></span>
+      <span class="marker-ripple"></span>
+    `,
+    iconSize: [32, 32],
+    iconAnchor: [16, 16],
+    popupAnchor: [0, -14],
+  });
+};
 
-const toCoordinate = (value: string | number | undefined) => {
-  const parsed = typeof value === "string" ? Number.parseFloat(value) : value;
-  return typeof parsed === "number" && Number.isFinite(parsed) && parsed !== 0
-    ? parsed
-    : null;
+const getDistrictLabelIcon = (name: string, count: number) => {
+  return L.divIcon({
+    className: "district-map-label",
+    html: `
+      <div class="district-badge-content">
+        <span class="district-badge-name">${name}</span>
+        ${count > 0 ? `<span class="district-badge-count">${count}筆</span>` : ""}
+      </div>
+    `,
+    iconSize: [80, 36],
+    iconAnchor: [40, 18],
+  });
 };
 
 function MapBounds({ records, resetTrigger }: { records: Transaction[], resetTrigger: number }) {
@@ -68,8 +87,8 @@ function MapBounds({ records, resetTrigger }: { records: Transaction[], resetTri
 
   useEffect(() => {
     const coordinates = records.flatMap((record) => {
-      const lat = toCoordinate(record.lat);
-      const lng = toCoordinate(record.lng);
+      const lat = toMapCoordinate(record.lat);
+      const lng = toMapCoordinate(record.lng);
       return lat !== null && lng !== null ? [[lat, lng] as [number, number]] : [];
     });
 
@@ -87,6 +106,33 @@ function MapBounds({ records, resetTrigger }: { records: Transaction[], resetTri
   return null;
 }
 
+function SelectedRecordFocus({ record }: { record: Transaction | null }) {
+  const map = useMap();
+
+  useEffect(() => {
+    const lat = toMapCoordinate(record?.lat);
+    const lng = toMapCoordinate(record?.lng);
+    if (lat === null || lng === null) return;
+    map.setView([lat, lng], Math.max(map.getZoom(), 15), { animate: true });
+  }, [map, record?.id, record?.lat, record?.lng]);
+
+  return null;
+}
+
+function MapZoomTracker({ onZoomChange }: { onZoomChange: (zoom: number) => void }) {
+  const map = useMapEvents({
+    zoomend() {
+      onZoomChange(map.getZoom());
+    },
+  });
+
+  useEffect(() => {
+    onZoomChange(map.getZoom());
+  }, [map, onZoomChange]);
+
+  return null;
+}
+
 export function MapCanvas({
   cityName,
   district,
@@ -97,22 +143,44 @@ export function MapCanvas({
   geocodedCount,
   totalToGeocode,
   onSelectRecord,
+  onSelectDistrict,
 }: MapCanvasProps) {
   const [layer, setLayer] = useState<MapLayer>("default");
   const [is3D, setIs3D] = useState(false);
   const [resetTrigger, setResetTrigger] = useState(0);
+  const [currentZoom, setCurrentZoom] = useState(district === "全部" ? 12 : 14);
+
   const city = CITIES.find((item) => item.name === cityName);
   const districtInfo = (CITY_DISTRICTS[cityName] ?? []).find((item) => item.name === district);
   const center: [number, number] = [
     districtInfo?.lat ?? city?.lat ?? 25.033,
     districtInfo?.lng ?? city?.lng ?? 121.5654,
   ];
+
   const geocodedRecords = useMemo(
-    () => records.filter((record) =>
-      toCoordinate(record.lat) !== null && toCoordinate(record.lng) !== null,
-    ),
-    [records],
+    () => records.filter((record) => {
+      const lat = toMapCoordinate(record.lat);
+      const lng = toMapCoordinate(record.lng);
+      return lat !== null && lng !== null && isPlausibleCoordinateForCity(lat, lng, cityName);
+    }),
+    [cityName, records],
   );
+
+  const districtRecordCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    records.forEach((r) => {
+      if (r.district) {
+        counts[r.district] = (counts[r.district] || 0) + 1;
+      }
+    });
+    return counts;
+  }, [records]);
+
+  const computedDistrictCoords = useMemo(() => {
+    const districts = CITY_DISTRICTS[cityName] ?? [];
+    return buildDistrictMapCoordinates(districts, records);
+  }, [cityName, records]);
+
   const tile = TILE_LAYERS[layer];
 
   return (
@@ -125,16 +193,60 @@ export function MapCanvas({
         className="leaflet-map"
       >
         <TileLayer url={tile.url} attribution={tile.attribution} />
+        <MapZoomTracker onZoomChange={setCurrentZoom} />
         <MapBounds records={geocodedRecords} resetTrigger={resetTrigger} />
-        <MarkerClusterGroup chunkedLoading maxClusterRadius={60}>
+        <SelectedRecordFocus record={selectedRecord} />
+
+        {/* Dynamic District Name Labels & Boundary Circles when zoomed out */}
+        {currentZoom <= 13 && (CITY_DISTRICTS[cityName] ?? []).map((d) => {
+          const coords = computedDistrictCoords[d.name];
+          if (!coords) return null;
+          const count = districtRecordCounts[d.name] ?? 0;
+          const radius = 1000 + Math.min(count * 50, 1500);
+          return (
+            <Circle
+              key={`circle-${d.name}`}
+              center={[coords.lat, coords.lng]}
+              radius={radius}
+              pathOptions={{
+                fillColor: "#ef6c52",
+                fillOpacity: 0.08,
+                color: "#ef6c52",
+                weight: 1.5,
+                dashArray: "4 6",
+              }}
+              eventHandlers={{
+                click: () => onSelectDistrict?.(d.name),
+              }}
+            />
+          );
+        })}
+
+        {currentZoom <= 13 && (CITY_DISTRICTS[cityName] ?? []).map((d) => {
+          const coords = computedDistrictCoords[d.name];
+          if (!coords) return null;
+          const count = districtRecordCounts[d.name] ?? 0;
+          return (
+            <Marker
+              key={`marker-lbl-${d.name}`}
+              position={[coords.lat, coords.lng]}
+              icon={getDistrictLabelIcon(d.name, count)}
+              eventHandlers={{
+                click: () => onSelectDistrict?.(d.name),
+              }}
+            />
+          );
+        })}
+
+        <>
           {geocodedRecords.map((record) => {
-            const lat = toCoordinate(record.lat)!;
-            const lng = toCoordinate(record.lng)!;
+            const lat = toMapCoordinate(record.lat)!;
+            const lng = toMapCoordinate(record.lng)!;
             return (
               <Marker
                 key={record.id}
                 position={[lat, lng]}
-                icon={markerIcon}
+                icon={getMarkerIcon(selectedRecord?.id === record.id)}
                 eventHandlers={{ click: () => onSelectRecord(record) }}
               >
                 <Popup>
@@ -148,7 +260,7 @@ export function MapCanvas({
               </Marker>
             );
           })}
-        </MarkerClusterGroup>
+        </>
       </MapContainer>
 
       <div className="layer-control glass-surface" aria-label="地圖圖層">
