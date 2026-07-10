@@ -282,7 +282,7 @@ export function FilterPanel({
           </label>
         </div>
 
-        <button type="button" onClick={onFiltersReset}>清除進階條件</button>
+        <button type="button" onClick={() => { if (window.confirm("清除所有進階篩選條件？")) onFiltersReset(); }}>清除進階條件</button>
       </div>
     </aside>
   );

@@ -170,28 +170,30 @@ export const useGeocoding = ({
 
       // Update data with cache immediately
       let newlyFoundFromCache = false;
-      const updatedFullData = [...data];
-
-      itemsToProcess.forEach((item) => {
-        const cleanedAddress = cleanTransactionAddress(item.address);
-        const fullKey = `FULL:${cityName}${item.district}${cleanedAddress}`;
-        const cached = locationCache.current[fullKey];
-        
-        if (cached) {
-          const { lat, lng } = cached;
-          const idx = updatedFullData.findIndex((p) => p.id === item.id);
-          if (
-            idx !== -1 &&
-            (updatedFullData[idx].lat !== lat || updatedFullData[idx].lng !== lng)
-          ) {
-            updatedFullData[idx] = { ...updatedFullData[idx], lat, lng };
-            newlyFoundFromCache = true;
+      const updatedDataFromCache = (prev: Transaction[]) => {
+        let updated = [...prev];
+        itemsToProcess.forEach((item) => {
+          const cleanedAddress = cleanTransactionAddress(item.address);
+          const fullKey = `FULL:${cityName}${item.district}${cleanedAddress}`;
+          const cached = locationCache.current[fullKey];
+          
+          if (cached) {
+            const { lat, lng } = cached;
+            const idx = updated.findIndex((p) => p.id === item.id);
+            if (
+              idx !== -1 &&
+              (updated[idx].lat !== lat || updated[idx].lng !== lng)
+            ) {
+              updated[idx] = { ...updated[idx], lat, lng };
+              newlyFoundFromCache = true;
+            }
           }
-        }
-      });
+        });
+        return updated;
+      };
 
       if (newlyFoundFromCache && active) {
-        setData(updatedFullData);
+        setData(updatedDataFromCache);
       }
 
       // Progress count should start from cached items

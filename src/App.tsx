@@ -1,15 +1,8 @@
 import {
-  BarChart3,
-  ChevronUp,
-  Info,
   LocateFixed,
-  List,
-  Map,
   MessageSquare,
   Moon,
   Save,
-  Scale,
-  SlidersHorizontal,
   Sun,
   Type,
   X,
@@ -40,6 +33,7 @@ import {
   type AssetMode,
   type ClientFilters,
 } from "./data/transactions";
+import { buildApiUrl, getApiBaseUrl, setApiBaseUrl } from "./lib/apiBase";
 
 const ASSET_DEFINITIONS: Record<AssetMode, {
   mode: AssetMode;
@@ -103,6 +97,7 @@ const ASSET_DEFINITIONS: Record<AssetMode, {
     accent: "#2f89a0",
   },
 };
+import { getCurrentPositionOnce } from "./lib/nativeGeo";
 import { useGeocoding } from "./hooks/useGeocoding";
 import { useTransactions } from "./hooks/useTransactions";
 import { isTaiwanCoordinate, matchTaiwanLocation } from "./lib/mapLocation";
@@ -279,7 +274,7 @@ export default function App() {
 
   const sendAudit = async (actionType: string, details?: unknown) => {
     try {
-      await fetch("/api/audit-log", {
+      await fetch(buildApiUrl("/api/audit-log"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -338,7 +333,11 @@ export default function App() {
     setAssetMode(search.mode);
     setCityName(search.cityName);
     setDistrict(search.district);
-    setFilters((current) => ({ ...current, keyword: search.keyword }));
+    setFilters({
+      ...DEFAULT_FILTERS,
+      keyword: search.keyword,
+      propertyTypes: defaultPropertyTypesForMode(search.mode),
+    });
     refresh();
   };
 
@@ -411,63 +410,59 @@ export default function App() {
   };
 
   const requestUserLocation = async () => {
+    setStatusMessage("正在定位中...");
+
+    const applyPosition = async (lat: number, lng: number, method: "gps" | "manual") => {
+      const resolved = await resolveCountyDistrict(lat, lng);
+      const nextLocation = {
+        latitude: lat,
+        longitude: lng,
+        county: resolved.county,
+        district: resolved.district,
+        method,
+      };
+      setUserLocation(nextLocation);
+      setCityName(resolved.county);
+      setDistrict(resolved.district);
+      setStatusMessage(
+        method === "gps"
+          ? `已切換到 ${resolved.county}${resolved.district}`
+          : `已依網路切換到 ${resolved.county}${resolved.district}`,
+      );
+      void sendAudit(
+        method === "gps" ? "location_permission_accept" : "location_permission_ip_fallback",
+        nextLocation,
+      );
+    };
+
     const fallbackToIP = async () => {
       try {
         const res = await fetch("https://get.geojs.io/v1/ip/geo.json");
         const data = await res.json();
         if (data && data.latitude && data.longitude) {
-          const lat = parseFloat(data.latitude);
-          const lng = parseFloat(data.longitude);
-          const resolved = await resolveCountyDistrict(lat, lng);
-          const nextLocation = {
-            latitude: lat,
-            longitude: lng,
-            county: resolved.county,
-            district: resolved.district,
-            method: "manual" as const,
-          };
-          setUserLocation(nextLocation);
-          setCityName(resolved.county);
-          setDistrict(resolved.district);
-          setStatusMessage(`已依基地台切換到 ${resolved.county}${resolved.district}`);
-          void sendAudit("location_permission_ip_fallback", nextLocation);
+          await applyPosition(parseFloat(data.latitude), parseFloat(data.longitude), "manual");
         } else {
-          setStatusMessage("無法取得基地台位置");
+          setStatusMessage("無法取得網路位置");
         }
-      } catch (e) {
-        setStatusMessage("無法取得基地台位置");
+      } catch {
+        setStatusMessage("無法取得網路位置");
       }
     };
 
-    if (!navigator.geolocation) {
-      setStatusMessage("此瀏覽器不支援定位權限，嘗試基地台定位...");
-      void fallbackToIP();
-      return;
-    }
-    
-    navigator.geolocation.getCurrentPosition(
-      async (position) => {
-        const resolved = await resolveCountyDistrict(position.coords.latitude, position.coords.longitude);
-        const nextLocation = {
-          latitude: position.coords.latitude,
-          longitude: position.coords.longitude,
-          county: resolved.county,
-          district: resolved.district,
-          method: "gps" as const,
-        };
-        setUserLocation(nextLocation);
-        setCityName(resolved.county);
-        setDistrict(resolved.district);
-        setStatusMessage(`已切換到 ${resolved.county}${resolved.district}`);
-        void sendAudit("location_permission_accept", nextLocation);
-      },
-      () => {
-        setStatusMessage("未取得定位權限，嘗試基地台定位...");
+    try {
+      const position = await getCurrentPositionOnce();
+      if (!position) {
+        setStatusMessage("未取得定位權限，嘗試網路定位...");
         void sendAudit("location_permission_deny");
         void fallbackToIP();
-      },
-      { enableHighAccuracy: true, timeout: 6000, maximumAge: 60000 },
-    );
+        return;
+      }
+      await applyPosition(position.latitude, position.longitude, "gps");
+    } catch {
+      setStatusMessage("未取得定位權限，嘗試網路定位...");
+      void sendAudit("location_permission_deny");
+      void fallbackToIP();
+    }
   };
 
   const submitFeedback = async (event: FormEvent<HTMLFormElement>) => {
@@ -475,7 +470,7 @@ export default function App() {
     if (!feedbackContent.trim()) return;
     setFeedbackStatus("submitting");
     try {
-      const response = await fetch("/api/feedback", {
+      const response = await fetch(buildApiUrl("/api/feedback"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -552,7 +547,7 @@ export default function App() {
       <main className="workspace">
         <section 
           className={`summary-strip glass-surface ${isSummaryExpanded ? "is-expanded" : "is-collapsed"}`} 
-          key={`${assetMode}-${loading}`}
+          key={assetMode}
         >
           {/* Mobile touch indicator (handle) */}
           <button 
@@ -567,7 +562,7 @@ export default function App() {
           {/* Mobile Collapsed State: keeps only key overview data */}
           <div className="summary-mobile-collapsed" onClick={() => setIsSummaryExpanded(true)}>
             <div className="collapsed-left">
-              <span className="collapsed-city">{cityName}{district === "全部" ? "整個縣市" : district}</span>
+              <span className="collapsed-city">{cityName}{district === "全部" ? "（全區）" : district}</span>
               <span className="collapsed-label">{summary.metrics[0]?.label}</span>
             </div>
             <div className="collapsed-right">
@@ -603,7 +598,7 @@ export default function App() {
             <div className="hot-chips-title">熱門查詢</div>
             <div className="hot-chips-scroll">
               {popularDistricts.length === 0 ? (
-                <span className="hot-chips-empty">依目前官方資料產生</span>
+                <span className="hot-chips-empty">選取行政區即可顯示熱門查詢</span>
               ) : (
                 popularDistricts.map((item) => (
                   <button 
@@ -629,7 +624,7 @@ export default function App() {
         <aside className="search-intelligence glass-surface" aria-label="搜尋輔助">
           <section>
             <strong>熱門查詢</strong>
-            {popularDistricts.length === 0 ? <span>依目前官方資料產生</span> : popularDistricts.map((item) => (
+            {popularDistricts.length === 0 ? <span>選取行政區即可顯示熱門查詢</span> : popularDistricts.map((item) => (
               <button key={item.query} type="button" onClick={() => setDistrict(item.query)}>
                 {item.query}<small>{item.count} 筆</small>
               </button>
@@ -743,17 +738,11 @@ export default function App() {
               />
             </label>
             <label className="copy-field">
-              <span>站名文案</span>
+              <span>後端資料 API URL（原生 App 用，留空走同源）</span>
               <input
-                value={editableCopy.title}
-                onChange={(event) => updateEditableCopy({ ...editableCopy, title: event.target.value })}
-              />
-            </label>
-            <label className="copy-field">
-              <span>無資料文案</span>
-              <input
-                value={editableCopy.empty}
-                onChange={(event) => updateEditableCopy({ ...editableCopy, empty: event.target.value })}
+                defaultValue={getApiBaseUrl()}
+                placeholder="https://your-vercel-app.vercel.app"
+                onBlur={(event) => setApiBaseUrl(event.target.value)}
               />
             </label>
             <button className="panel-link button-link" type="button" onClick={requestUserLocation}>
@@ -851,7 +840,7 @@ export default function App() {
               <span>聯絡方式</span>
               <input value={feedbackContact} onChange={(event) => setFeedbackContact(event.target.value)} />
             </label>
-            {feedbackStatus === "error" ? <p>尚未設定資料寫入端點，部署後請設定 FEEDBACK_WEBHOOK_URL。</p> : null}
+            {feedbackStatus === "error" ? <p>提交失敗，請稍後再試。</p> : null}
             {feedbackStatus === "success" ? <p>回饋已送出。</p> : null}
             <button className="primary-action" type="submit" disabled={feedbackStatus === "submitting"}>
               {feedbackStatus === "submitting" ? "送出中" : "送出回饋"}

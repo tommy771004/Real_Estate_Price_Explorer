@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">實價登錄查詢</string>
+    <string name="title_activity_main">實價登錄查詢</string>
+    <string name="package_name">tw.realestate.explorer</string>
+    <string name="custom_url_scheme">tw.realestate.explorer</string>
+</resources>

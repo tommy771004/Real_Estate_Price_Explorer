@@ -16,7 +16,7 @@ type SearchRequest = {
 const downloadWorkbook = async (url: string) => {
   const response = await fetch(url);
   if (!response.ok) {
-    throw new Error(`下載失敗，狀態碼: ${response.status}`);
+    throw new Error("官方資料下載失敗，請稍後再試");
   }
   const data = await response.arrayBuffer();
   return xlsx.read(data, { type: "array" });

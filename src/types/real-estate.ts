@@ -29,8 +29,3 @@ export interface Transaction {
   lat?: number | string;
   lng?: number | string;
 }
-
-export interface HistoryCounts {
-  buildCaseMap: Record<string, number>;
-  addressMap: Record<string, number>;
-}

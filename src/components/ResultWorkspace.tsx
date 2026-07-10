@@ -1,4 +1,4 @@
-import { ArrowUpRight, Bookmark, ChevronUp, Heart, Scale, List, BarChart3, X, Share } from "lucide-react";
+import { AlertTriangle, ArrowUpRight, Bookmark, Building2, Calendar, CheckCircle, ChevronUp, Clock, DollarSign, Heart, Home, Layers, List, BarChart3, Map, MapPin, Ruler, Scale, Share, Shield, Sparkles, TrendingUp, X } from "lucide-react";
 import { useMemo, useState, useRef, useEffect } from "react";
 import { createPortal } from "react-dom";
 import type { CSSProperties } from "react";
@@ -35,7 +35,7 @@ function InvalidateMapSize({ center }: { center: [number, number] }) {
   return null;
 }
 
-export type WorkspaceView = "map" | "list" | "trend" | "compare";
+export type WorkspaceView = "list" | "trend" | "compare";
 
 type ResultWorkspaceProps = {
   cityName: string;
@@ -71,10 +71,17 @@ function RecordRow({
   onOpenDetail: () => void;
 }) {
   return (
-    <button
+    <div
       className={`record-row ${selected ? "is-selected" : ""}`}
-      type="button"
+      role="button"
+      tabIndex={0}
       onClick={onSelect}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onSelect();
+        }
+      }}
     >
       <span className="record-place">
         <strong>{record.address || record.district}</strong>
@@ -84,25 +91,19 @@ function RecordRow({
         <strong>{formatUnitPrice(record.unitPrice, mode)}</strong>
         <small>{formatTransactionPrice(record.totalPrice, mode)}</small>
       </span>
-      <span 
+      <button
         className="row-detail-btn"
+        type="button"
         onClick={(e) => {
           e.stopPropagation();
           onOpenDetail();
         }}
         title="查看成交詳情"
-        role="button"
-        tabIndex={0}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter' || e.key === ' ') {
-            e.preventDefault();
-            onOpenDetail();
-          }
-        }}
+        aria-label="查看成交詳情"
       >
         <ArrowUpRight aria-hidden="true" size={16} />
-      </span>
-    </button>
+      </button>
+    </div>
   );
 }
 
@@ -166,17 +167,23 @@ export function ResultWorkspace({
 
   const similarRecordsInfo = useMemo(() => {
     if (!detailRecord) return { list: [], count: 0, maxPrice: 0, minPrice: 0 };
-    const streetName = detailRecord.address ? detailRecord.address.substring(0, 8) : "";
+    const extractStreet = (addr: string) => {
+      for (let i = 0; i < addr.length; i++) {
+        if (/\d/.test(addr[i])) return addr.substring(0, i);
+      }
+      return addr;
+    };
+    const streetName = detailRecord.address ? extractStreet(detailRecord.address) : "";
     const list = records.filter(
       (r) => r.id !== detailRecord.id && (r.district === detailRecord.district || (streetName && r.address.includes(streetName)))
     ).slice(0, 3);
     
     const allMatching = records.filter(
-      (r) => r.district === detailRecord.district || (streetName && r.address.includes(streetName))
+      (r) => r.id !== detailRecord.id && (r.district === detailRecord.district || (streetName && r.address.includes(streetName)))
     );
     const prices = allMatching.map((r) => parseFloat(r.unitPrice) || 0).filter(p => p > 0);
-    const maxPrice = prices.length ? Math.max(...prices) : parseFloat(detailRecord.unitPrice) || 0;
-    const minPrice = prices.length ? Math.min(...prices) : parseFloat(detailRecord.unitPrice) || 0;
+    const maxPrice = prices.length ? Math.max(...prices) : 0;
+    const minPrice = prices.length ? Math.min(...prices) : 0;
     
     return {
       list,
@@ -194,6 +201,7 @@ export function ResultWorkspace({
 
   const [showRealMap, setShowRealMap] = useState(false);
   const [isSharing, setIsSharing] = useState(false);
+  const [copyToast, setCopyToast] = useState<string | null>(null);
 
   const handleShare = async () => {
     if (!detailRecord) return;
@@ -215,7 +223,8 @@ export function ResultWorkspace({
       }
     } else {
       navigator.clipboard.writeText(`${title}\n${text}\n${url}`).then(() => {
-        alert("已複製到剪貼簿");
+        setCopyToast("已複製到剪貼簿");
+        setTimeout(() => setCopyToast(null), 2000);
       });
     }
   };
@@ -430,7 +439,7 @@ export function ResultWorkspace({
           </div>
         ) : loading ? (
           <div className="result-skeleton" aria-label="資料載入中">
-            <i /><i /><i />
+            <i /><i /><i /><i /><i />
           </div>
         ) : visibleRecords.length === 0 ? (
           <div className="result-message">
@@ -471,10 +480,10 @@ export function ResultWorkspace({
           <div className="compare-view">
             {comparisonRecords.map((record, index) => (
               <div className="compare-column" key={record.id}>
-                <span>案例 {index + 1}</span>
+                <span>{record.district || `案例 ${index + 1}`}</span>
                 <strong>{record.address || record.district}</strong>
                 <b>{formatUnitPrice(record.unitPrice, mode)}</b>
-                <small>{record.transactionType} · {record.date}</small>
+                <small>{record.transactionType} · {record.date || "日期未揭露"}</small>
               </div>
             ))}
           </div>
@@ -557,25 +566,25 @@ export function ResultWorkspace({
                 <h1 className="detail-modal-address">{detailRecord.address}</h1>
                 <div className="detail-modal-badges">
                   {parseFloat(detailRecord.unitPrice) > 50 ? (
-                    <span className="badge-pill trend-badge">📈 趨勢指標</span>
+                    <span className="badge-pill trend-badge"><TrendingUp size={13} /> 趨勢指標</span>
                   ) : parseFloat(detailRecord.unitPrice) < 25 ? (
-                    <span className="badge-pill special-badge">🚨 特殊交易</span>
+                    <span className="badge-pill special-badge"><AlertTriangle size={13} /> 特殊交易</span>
                   ) : (
-                    <span className="badge-pill standard-badge">✔️ 一般交易</span>
+                    <span className="badge-pill standard-badge"><CheckCircle size={13} /> 一般交易</span>
                   )}
                   {detailRecord.hasManagement === "有" ? (
-                    <span className="badge-pill management-tag">🛡️ 留守管理</span>
+                    <span className="badge-pill management-tag"><Shield size={13} /> 有管理</span>
                   ) : (
-                    <span className="badge-pill management-tag-none">🏡 自主管理</span>
+                    <span className="badge-pill management-tag-none"><Home size={13} /> 無管理</span>
                   )}
                   {(parseFloat(detailRecord.parkingPrice) > 0 || detailRecord.parkingType) && (
-                    <span className="badge-pill parking-tag">🏢 附車位</span>
+                    <span className="badge-pill parking-tag"><Building2 size={13} /> 附車位</span>
                   )}
-                  <span className="badge-pill status-tag">✨ 實價認證</span>
+                  <span className="badge-pill status-tag"><Sparkles size={13} /> 實價登錄</span>
                 </div>
                 <div className="detail-modal-meta">
-                  <span className="meta-item">🗓️ {detailRecord.date || "2026/06/03"} 交易</span>
-                  <span className="meta-item">📍 {detailRecord.address ? detailRecord.address.substring(0, 3) : "新北市"}</span>
+                  <span className="meta-item"><Calendar size={14} /> {detailRecord.date || "日期未揭露"} 交易</span>
+                  <span className="meta-item"><MapPin size={14} /> {cityName || (detailRecord.address ? detailRecord.address.substring(0, 3) : "—")}</span>
                 </div>
               </div>
             </div>
@@ -585,7 +594,7 @@ export function ResultWorkspace({
                 {/* Metrics Grid */}
                 <div className="metrics-grid">
                   <div className="metric-card">
-                    <div className="metric-icon-wrap">💲</div>
+                    <div className="metric-icon-wrap"><DollarSign size={20} /></div>
                     <div className="metric-content">
                       <span className="metric-label">單價 / 坪</span>
                       <strong className="metric-value">{formatUnitPrice(detailRecord.unitPrice, mode)}</strong>
@@ -593,17 +602,17 @@ export function ResultWorkspace({
                     </div>
                   </div>
                   <div className="metric-card">
-                    <div className="metric-icon-wrap">📐</div>
+                    <div className="metric-icon-wrap"><Ruler size={20} /></div>
                     <div className="metric-content">
                       <span className="metric-label">建物面積</span>
-                      <strong className="metric-value">{parseFloat(detailRecord.buildingArea) || 0} m²</strong>
+                      <strong className="metric-value">{(parseFloat(detailRecord.buildingArea) * 0.3025).toFixed(2)} 坪</strong>
                       <span className="metric-sub">
-                        約 {(parseFloat(detailRecord.buildingArea) * 0.3025).toFixed(2)} 坪
+                        {parseFloat(detailRecord.buildingArea) || 0} m²
                       </span>
                     </div>
                   </div>
                   <div className="metric-card">
-                    <div className="metric-icon-wrap">🧬</div>
+                    <div className="metric-icon-wrap"><Layers size={20} /></div>
                     <div className="metric-content">
                       <span className="metric-label">移轉層次</span>
                       <strong className="metric-value">{detailRecord.floor || "全"} / {detailRecord.totalFloor || "-"} 樓</strong>
@@ -611,7 +620,7 @@ export function ResultWorkspace({
                     </div>
                   </div>
                   <div className="metric-card">
-                    <div className="metric-icon-wrap">🕒</div>
+                    <div className="metric-icon-wrap"><Clock size={20} /></div>
                     <div className="metric-content">
                       <span className="metric-label">屋齡</span>
                       <strong className="metric-value">
@@ -625,8 +634,8 @@ export function ResultWorkspace({
                 {/* Geographic Info / Map Placeholder */}
                 <div className="geo-location-section">
                   <div className="section-title">
-                    🗺️ 地理位置
-                    <span style={{ fontSize: "11px", fontWeight: "normal", color: "#64748b", marginLeft: "6px" }}>
+                    <Map size={16} /> 地理位置
+                    <span className="geo-coords-sub">
                       ({toMapCoordinate(detailRecord.lat) !== null ? `緯度: ${detailRecord.lat}` : "無精確緯度"} , {toMapCoordinate(detailRecord.lng) !== null ? `經度: ${detailRecord.lng}` : "無精確經度"})
                     </span>
                   </div>
@@ -680,7 +689,7 @@ export function ResultWorkspace({
                     <div className="modal-map-mock" style={{ height: 200 }}>
                       <div className="map-grid-layer"></div>
                       <div className="map-circle-ping"></div>
-                      <div className="map-marker-pin">📍</div>
+                      <div className="map-marker-pin"><MapPin size={24} /></div>
                       <div className="map-address-overlay">{detailRecord.address}</div>
                       <div className="map-coords">
                         地圖載入中...
@@ -695,7 +704,7 @@ export function ResultWorkspace({
                   <div className="info-table">
                     <div className="info-row">
                       <span className="info-key">建物型態</span>
-                      <span className="info-val">{detailRecord.buildingType || "電梯大樓"}</span>
+                      <span className="info-val">{detailRecord.buildingType || "—"}</span>
                     </div>
                     <div className="info-row">
                       <span className="info-key">移轉層次</span>
@@ -703,20 +712,20 @@ export function ResultWorkspace({
                     </div>
                     <div className="info-row">
                       <span className="info-key">主要用途</span>
-                      <span className="info-val">{detailRecord.mainUse || "住家用"}</span>
+                      <span className="info-val">{detailRecord.mainUse || "—"}</span>
                     </div>
                     <div className="info-row">
                       <span className="info-key">主要建材</span>
-                      <span className="info-val">{detailRecord.material || "鋼筋混凝土造"}</span>
+                      <span className="info-val">{detailRecord.material || "—"}</span>
                     </div>
                     <div className="info-row">
                       <span className="info-key">建築完成日</span>
-                      <span className="info-val">{detailRecord.completionDate && detailRecord.completionDate !== "-" ? detailRecord.completionDate : "新成屋"}</span>
+                      <span className="info-val">{detailRecord.completionDate && detailRecord.completionDate !== "-" ? detailRecord.completionDate : "—"}</span>
                     </div>
                     <div className="info-row">
                       <span className="info-key">現況格局</span>
                       <span className="info-val">
-                        {detailRecord.rooms || "2"} 房 {detailRecord.halls || "2"} 廳 {detailRecord.bathrooms || "1"} 衛
+                        {detailRecord.rooms ?? "—"} 房 {detailRecord.halls ?? "—"} 廳 {detailRecord.bathrooms ?? "—"} 衛
                       </span>
                     </div>
                   </div>
@@ -748,7 +757,7 @@ export function ResultWorkspace({
                       similarRecordsInfo.list.map((sim) => (
                         <div className="similar-item" key={sim.id}>
                           <div className="sim-date-col">
-                             <span className="sim-date">{sim.date || "115/05"}</span>
+                             <span className="sim-date">{sim.date || "日期未揭露"}</span>
                              <span className="sim-badge">鄰近</span>
                           </div>
                           <div className="sim-address-col">
@@ -772,22 +781,6 @@ export function ResultWorkspace({
                     {detailRecord.remarks || "本次交易實價登錄平台無額外備註資訊。"}
                   </div>
                 </div>
-
-                {/* Sponsor Tags / Recommendations */}
-                <div className="sponsor-section">
-                  <div className="section-title">
-                    入手這間房後，順手準備 <span className="sponsor-ad-tag">廣告</span>
-                  </div>
-                  <div className="sponsor-tags">
-                    <span className="s-tag">🌪️ Dyson 吸塵器</span>
-                    <span className="s-tag">🛍️ momo購物</span>
-                    <span className="s-tag">📦 蝦皮購物</span>
-                    <span className="s-tag">🏠 HOLA 和樂家居</span>
-                    <span className="s-tag">🛋️ Ikea 宜家家居</span>
-                    <span className="s-tag">🧹 掃地機器人</span>
-                    <span className="s-tag">📺 智慧電視</span>
-                  </div>
-                </div>
               </div>
             </div>
 
@@ -803,6 +796,9 @@ export function ResultWorkspace({
               </div>
             </div>
           </div>
+          {copyToast && (
+            <div className="copy-toast">{copyToast}</div>
+          )}
         </div>,
         document.body
       )}

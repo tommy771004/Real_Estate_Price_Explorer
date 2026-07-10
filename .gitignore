@@ -7,3 +7,22 @@ tests/experience.test.ts
 
 .vercel
 .env*
+
+# iOS build artifacts
+ios/App/Pods/
+ios/App/output/
+ios/App/App/public/
+*.ipa
+DerivedData/
+
+# Android build artifacts
+android/.gradle/
+android/app/build/
+android/build/
+android/local.properties
+*.apk
+*.aab
+
+# Capacitor
+capacitor.config.json
+

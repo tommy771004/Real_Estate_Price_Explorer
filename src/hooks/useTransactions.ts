@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 
+import { buildApiUrl } from "../lib/apiBase";
 import {
   buildSearchPayload,
   type ClientFilters,
@@ -43,7 +44,7 @@ export function useTransactions(
       setLoading(true);
       setError(null);
       try {
-        const response = await fetch("/api/proxy-search", {
+        const response = await fetch(buildApiUrl("/api/proxy-search"), {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           signal: controller.signal,
@@ -52,7 +53,7 @@ export function useTransactions(
         const result = await response.json() as SearchResponse;
 
         if (!response.ok || !result.success) {
-          throw new Error(result.error || `官方資料服務錯誤 (${response.status})`);
+          throw new Error(result.error || "官方資料服務暫時無法回應，請稍後再試");
         }
 
         const mapped = mapOfficialRows(result.data ?? [], getTransactionName(mode), cityName);
